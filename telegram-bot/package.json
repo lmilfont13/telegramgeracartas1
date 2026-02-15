@@ -1,0 +1,30 @@
+{
+    "name": "carta-apresentacao-bot",
+    "version": "1.0.0",
+    "description": "Bot do Telegram para gerar cartas de apresentação em PDF",
+    "main": "bot.js",
+    "scripts": {
+        "start": "node bot.js",
+        "dev": "nodemon bot.js"
+    },
+    "keywords": [
+        "telegram",
+        "bot",
+        "pdf",
+        "carta"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "dotenv": "^16.4.5",
+        "node-telegram-bot-api": "^0.66.0",
+        "pdfkit": "^0.15.0",
+        "xlsx": "^0.18.5"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.3"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}
