@@ -1,4 +1,4 @@
-# 📄 Bot Telegram - Gerador de Cartas de Apresentação em PDF
+# 📄 Bot Telegram - Gerador de Cartas de Apresentação em PDF 🤖
 
 Bot do Telegram que gera cartas de apresentação profissionais em PDF através de um fluxo conversacional simples.
 
