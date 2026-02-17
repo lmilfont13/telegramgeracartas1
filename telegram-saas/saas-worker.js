@@ -26,6 +26,8 @@ const { generateSaaSPDF } = require('./saas-pdf-generator');
 
 // Armazena instâncias de bots ativos: { [botId]: TelegramBotInstance }
 const activeBots = {};
+let isSyncing = false; // Lock para evitar execuções simultâneas
+
 
 // Gerenciador de Estados dos Usuários
 // { [chatId]: { step: 'IDLE', data: { funcionario, templateId, empresaId, stampPosition, customCoords: { x, y } } } }
@@ -222,26 +224,58 @@ function startBot(botData) {
             }
             const state = userStates[chatId];
 
-            console.log(`[Bot ${botData.nome}] (${state.step}) Mensagem de ${msg.from.first_name}: ${text}`);
+            console.log(`[Bot ${botData.nome}] (${state.step}) Mensagem de ${msg.from.first_name}: "${text}"`);
 
-            if (text === '/start') {
+            // COMANDOS GLOBAIS
+            if (text === '/start' || text === '/reiniciar') {
                 state.step = STEPS.SELECTING_COMPANY;
                 state.data = {};
+                console.log(`[Bot ${botData.nome}] Resetando estado para SELECTING_COMPANY via ${text}`);
 
                 // Busca empresas disponíveis
-                const { data: empresas } = await supabase.from('empresas').select('id, nome').order('nome');
+                try {
+                    const { data: empresas, error: empErr } = await supabase.from('empresas').select('id, nome').order('nome');
 
-                if (!empresas || empresas.length === 0) {
-                    return bot.sendMessage(chatId, "❌ Nenhuma empresa cadastrada no sistema.");
+                    if (empErr) throw empErr;
+                    if (!empresas || empresas.length === 0) {
+                        return bot.sendMessage(chatId, "❌ Nenhuma empresa cadastrada no sistema.");
+                    }
+
+                    const buttons = empresas.map(emp => ([{ text: emp.nome, callback_data: `e:${emp.id}` }]));
+
+                    return bot.sendMessage(chatId, `🏢 **Selecione a Empresa** para iniciar:`, {
+                        parse_mode: 'Markdown',
+                        reply_markup: { inline_keyboard: buttons }
+                    });
+                } catch (err) {
+                    console.error(`[Bot ${botData.nome}] Erro ao carregar empresas:`, err);
+                    return bot.sendMessage(chatId, "❌ Erro ao conectar com o banco de dados. Tente novamente mais tarde.");
                 }
-
-                const buttons = empresas.map(emp => ([{ text: emp.nome, callback_data: `e:${emp.id}` }]));
-
-                return bot.sendMessage(chatId, `🏢 **Selecione a Empresa** para iniciar:`, {
-                    parse_mode: 'Markdown',
-                    reply_markup: { inline_keyboard: buttons }
-                });
             }
+
+            if (text === '/ajuda') {
+                return bot.sendMessage(chatId,
+                    '*📄 Gerador de Carta de Apresentação*\n\n' +
+                    '1️⃣ Use /start para iniciar\n' +
+                    '2️⃣ Selecione a empresa\n' +
+                    '3️⃣ Pesquise o funcionário pelo nome\n' +
+                    '4️⃣ Informe o nome da Loja/Unidade\n' +
+                    '5️⃣ Escolha o modelo e a posição dos carimbos\n\n' +
+                    '*Comandos:*\n' +
+                    '/start - Iniciar processo\n' +
+                    '/reiniciar - Reiniciar do zero\n' +
+                    '/cancelar - Parar operação atual\n' +
+                    '/ajuda - Mostrar esta mensagem',
+                    { parse_mode: 'Markdown' }
+                );
+            }
+
+            if (text === '/cancelar') {
+                state.step = STEPS.IDLE;
+                state.data = {};
+                return bot.sendMessage(chatId, "❌ Operação cancelada. Use /start para começar novamente.");
+            }
+
 
             // Se estiver selecionando LOJA (Texto Livre)
             if (state.step === STEPS.SELECTING_LOJA) {
@@ -337,6 +371,15 @@ function startBot(botData) {
 
                 // Se encontrou, processa
                 return handleResults(bot, chatId, results, botData);
+            }
+
+            // Resposta padrão se nada acima capturou a mensagem
+            if (state.step === STEPS.IDLE && !state.data.empresaId) {
+                return bot.sendMessage(chatId, "👋 Olá! Use /start para começar a gerar uma carta de apresentação.");
+            } else if (state.step !== STEPS.IDLE) {
+                // Se estiver em um passo mas mandou algo que não processamos
+                console.log(`[Bot ${botData.nome}] Mensagem ignorada no estado ${state.step}: "${text}"`);
+                // Opcional: Avisar o usuário dependendo do estado
             }
         });
 
@@ -554,8 +597,11 @@ function stopBot(botId) {
 
 // Loop principal de atualização
 async function syncBots() {
+    if (isSyncing) return;
+    isSyncing = true;
+
     try {
-        console.log("🔍 Buscando bots ativos no banco...");
+        console.log("🔍 Sincronizando bots...");
 
         const { data: bots, error } = await supabase
             .from('bots')
@@ -588,6 +634,8 @@ async function syncBots() {
         console.log(`✅ Total de bots rodando: ${Object.keys(activeBots).length}`);
     } catch (e) {
         console.error("💥 Erro em syncBots:", e);
+    } finally {
+        isSyncing = false;
     }
 }
 
