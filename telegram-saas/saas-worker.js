@@ -1,15 +1,17 @@
 const { createClient } = require('@supabase/supabase-js');
 const TelegramBot = require('node-telegram-bot-api');
-require('dotenv').config({ path: '.env.local' });
+// Tenta carregar .env.local apenas localmente
+const fs = require('fs');
+if (fs.existsSync('.env.local')) {
+    require('dotenv').config({ path: '.env.local' });
+}
 
-// Configuração Supabase (usando Service Role se possível, ou Anon)
-// Para o Worker que roda no servidor, idealmente seria Service Role para ler tudo.
-// Mas vamos usar a Anon Key mesmo, pois desativamos RLS.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-    console.error("❌ ERRO: Variáveis de ambiente Supabase não encontradas em .env.local");
+    console.error("❌ ERRO: Variáveis de ambiente Supabase (URL ou KEY) não encontradas.");
+    console.error("Certifique-se de que elas foram adicionadas no Dashboard do Render ou Vercel.");
     process.exit(1);
 }
 

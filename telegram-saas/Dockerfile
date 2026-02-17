@@ -1,5 +1,5 @@
-# Usar uma imagem base leve do Node.js
-FROM node:18-slim
+# Usar uma imagem base estável do Node.js
+FROM node:20-slim
 
 # Criar diretório do app
 WORKDIR /app
