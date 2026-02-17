@@ -4,6 +4,7 @@ services:
     env: docker
     rootDir: telegram-saas
     dockerfilePath: Dockerfile
+    plan: free
     envVars:
       - key: NODE_ENV
         value: production
