@@ -12,15 +12,18 @@ console.log("Todas as chaves detectadas:", Object.keys(process.env));
 console.log("Filtro SUPABASE/NEXT_PUBLIC:", Object.keys(process.env).filter(k => k.includes('SUPABASE') || k.includes('NEXT_PUBLIC')));
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
     console.error("❌ ERRO: Variáveis de ambiente Supabase (URL ou KEY) não encontradas.");
-    console.error("Chaves esperadas: NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY");
+    console.error("Chaves esperadas: NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY (ou NEXT_PUBLIC_SUPABASE_ANON_KEY)");
     process.exit(1);
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+console.log(`[Init] Usando chave Supabase: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SERVICE_ROLE (Admin)' : 'ANON (Pública)'}`);
+
 
 const { generateSaaSPDF } = require('./saas-pdf-generator');
 
