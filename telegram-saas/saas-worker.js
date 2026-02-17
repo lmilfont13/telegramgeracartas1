@@ -7,8 +7,9 @@ if (fs.existsSync('.env.local')) {
 }
 
 // Debug: Lista os nomes das variáveis disponíveis (sem os valores por segurança)
-console.log("--- Diagnóstico de Ambiente ---");
-console.log("Variáveis detectadas:", Object.keys(process.env).filter(k => k.includes('SUPABASE') || k.includes('NEXT_PUBLIC')));
+console.log("--- Diagnóstico de Ambiente Completo ---");
+console.log("Todas as chaves detectadas:", Object.keys(process.env));
+console.log("Filtro SUPABASE/NEXT_PUBLIC:", Object.keys(process.env).filter(k => k.includes('SUPABASE') || k.includes('NEXT_PUBLIC')));
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
