@@ -582,7 +582,12 @@ async function generateAndSendPDF(bot, chatId, data, botData) {
         finalContent = finalContent.replace(/{{CDC}}/g, extractField(funcionario, 'cdc') || botData.loja_selecionada || '_______');
         finalContent = finalContent.replace(/{{AGENCIA}}/g, extractField(funcionario, 'agencia') || '_______');
 
-        // 4. Download de Imagens
+        // 4. Compactação de Espaços (Atacadão)
+        if (empresa.nome.toLowerCase().includes('atacad')) {
+            finalContent = finalContent.replace(/\n{3,}/g, '\n\n'); // Max 2 quebras
+        }
+
+        // 5. Download de Imagens
         const logoBuffer = await downloadImageFromSupabase(empresa.logo_url);
         const carimbo1Buffer = await downloadImageFromSupabase(empresa.carimbo_url);
         const carimbo2Buffer = await downloadImageFromSupabase(empresa.carimbo_funcionario_url);
