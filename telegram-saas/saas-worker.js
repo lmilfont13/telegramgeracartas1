@@ -135,6 +135,11 @@ function extractField(funcionario, type) {
             keys: ['cdc', 'centro', 'custo'],
             blacklist: [],
             valueCheck: (v) => v && v.length >= 2
+        },
+        agencia: {
+            keys: ['agencia', 'age', 'banco', 'banking'],
+            blacklist: [],
+            valueCheck: (v) => v && v.length >= 2
         }
     };
 
@@ -557,7 +562,12 @@ async function generateAndSendPDF(bot, chatId, data, botData) {
             nome_empresa: empresa.nome,
             loja_selecionada: data.loja_selecionada
         };
-        const finalContent = renderTemplate(templateText, funcionario, botDataWithSelectedCompany);
+        let finalContent = renderTemplate(templateText, funcionario, botDataWithSelectedCompany);
+
+        // Adiciona substituições específicas aqui, se necessário, antes de gerar o PDF
+        // Exemplo:
+        finalContent = finalContent.replace(/{{CDC}}/g, extractField(funcionario, 'cdc') || botData.loja_selecionada || '_______');
+        finalContent = finalContent.replace(/{{AGENCIA}}/g, extractField(funcionario, 'agencia') || '_______');
 
         // 4. Download de Imagens
         const logoBuffer = await downloadImageFromSupabase(empresa.logo_url);
@@ -571,7 +581,8 @@ async function generateAndSendPDF(bot, chatId, data, botData) {
             carimbo1Url: carimbo1Buffer,
             carimbo2Url: carimbo2Buffer,
             stampPosition,
-            customCoords
+            customCoords,
+            compact: empresa.nome.toLowerCase().includes('atacad') // Modo compacto para Atacadão
         });
 
         // 6. Envio

@@ -30,17 +30,22 @@ async function downloadImage(urlOrBuffer) {
  * @param {Object} options.customCoords - { x, y } para posição personalizada
  * @returns {Promise<Buffer>} - Buffer do PDF gerado
  */
-async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampPosition = 'ambos', customCoords = null }) {
+async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampPosition = 'ambos', customCoords = null, compact = false }) {
     // Baixar imagens antecipadamente (ou usar buffers se fornecidos)
     const logoBuffer = await downloadImage(logoUrl);
     const carimbo1Buffer = await downloadImage(carimbo1Url);
     const carimbo2Buffer = await downloadImage(carimbo2Url);
 
+    const marginVal = compact ? 40 : 72;
+    const fontSizeBody = compact ? 10 : 12;
+    const lineGap = compact ? 1 : 2;
+    const startY = compact ? 110 : 140;
+
     return new Promise((resolve, reject) => {
         try {
             const doc = new PDFDocument({
                 size: 'A4',
-                margins: { top: 72, bottom: 72, left: 72, right: 72 },
+                margins: { top: marginVal, bottom: marginVal, left: marginVal, right: marginVal },
                 bufferPages: true
             });
 
@@ -53,7 +58,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             console.log(`[PDFGen] Logo buffer: ${logoBuffer ? logoBuffer.length : 'null'}`);
             if (logoBuffer) {
                 try {
-                    doc.image(logoBuffer, 72, 40, { width: 120 });
+                    doc.image(logoBuffer, marginVal, 40, { width: 120 });
                     console.log(`[PDFGen] Logo inserida.`);
                 } catch (e) {
                     console.error(`[PDFGen] Erro ao inserir logo:`, e.message);
@@ -71,11 +76,11 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 });
             doc.restore();
 
-            doc.x = 72;
-            doc.y = 140;
+            doc.x = marginVal;
+            doc.y = startY;
 
             doc.font('Helvetica');
-            doc.fontSize(12);
+            doc.fontSize(fontSizeBody);
             doc.fillColor('black');
 
             console.log(`[PDFGen] Texto a ser escrito (primeiros 100 chars): "${text.substring(0, 100).replace(/\n/g, ' ')}..."`);
@@ -96,13 +101,13 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     continue;
                 }
 
-                doc.text(line, { align: 'justify', lineGap: 2 });
+                doc.text(line, { align: 'justify', lineGap: lineGap });
             }
 
             // --- Gerenciamento de Carimbos ---
             const carimboHeight = 90;
             const carimboWidth = 170;
-            const margin = 72;
+            const margin = marginVal;
             const pageWidth = doc.page.width;
 
             let posX1 = margin;
