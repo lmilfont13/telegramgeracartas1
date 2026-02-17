@@ -85,78 +85,139 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
 
             console.log(`[PDFGen] Texto a ser escrito (primeiros 100 chars): "${text.substring(0, 100).replace(/\n/g, ' ')}..."`);
 
-            // Texto
-            const lines = text.split('\n');
-            for (const line of lines) {
-                if (!line || line.trim() === '') {
-                    doc.moveDown(0.5);
-                    continue;
-                }
+            // --- INLINE STAMP CHECK ---
+            const hasInlineStamp1 = text.includes('{{CARIMBO_1}}');
+            const hasInlineStamp2 = text.includes('{{CARIMBO_2}}');
+            const hasAnyInline = hasInlineStamp1 || hasInlineStamp2;
 
-                if (line.trim().startsWith('#')) {
-                    doc.fontSize(14).font('Helvetica-Bold')
-                        .text(line.replace(/^#+\s*/, ''), { align: 'left' })
-                        .moveDown(0.5);
-                    doc.fontSize(12).font('Helvetica');
-                    continue;
-                }
+            if (hasAnyInline) {
+                console.log(`[PDFGen] Modo INLINE detectado. Carimbo 1: ${hasInlineStamp1}, Carimbo 2: ${hasInlineStamp2}`);
 
-                doc.text(line, { align: 'justify', lineGap: lineGap });
-            }
+                // Regex para separar os tokens mantendo-os no array
+                // Ex: "texto...{{CARIMBO_1}}...texto" -> ["texto...", "{{CARIMBO_1}}", "...texto"]
+                const parts = text.split(/({{CARIMBO_[12]}})/g);
 
-            // --- Gerenciamento de Carimbos ---
-            const carimboHeight = 90;
-            const carimboWidth = 170;
-            const margin = marginVal;
-            const pageWidth = doc.page.width;
-
-            let posX1 = margin;
-            let posX2 = pageWidth - margin - carimboWidth;
-            let posY = doc.page.height - 180; // Padrão
-
-            // Sobrescrever se for personalizado
-            if (stampPosition === 'personalizado' && customCoords) {
-                posX1 = Number(customCoords.x) || margin;
-                posY = Number(customCoords.y) || posY;
-                posX2 = posX1 + carimboWidth + 20;
-            } else {
-                // Se não houver espaço na página atual:
-                const bottomMargin = compact ? 50 : 200;
-
-                if (doc.y > doc.page.height - bottomMargin) {
-                    if (!compact) {
-                        doc.addPage();
-                        posY = 72;
+                for (const part of parts) {
+                    if (part === '{{CARIMBO_1}}') {
+                        if (carimbo1Buffer) {
+                            const currentY = doc.y;
+                            // Se não couber na página, cria nova
+                            if (currentY + 100 > doc.page.height - marginVal) {
+                                doc.addPage();
+                            }
+                            doc.image(carimbo1Buffer, doc.x, doc.y, { width: 150 });
+                            // Avança o cursor Y para não escrever em cima da imagem
+                            doc.moveDown(5);
+                            console.log(`[PDFGen] INLINE: Carimbo 1 inserido em Y=${doc.y}`);
+                        }
+                    } else if (part === '{{CARIMBO_2}}') {
+                        if (carimbo2Buffer) {
+                            const currentY = doc.y;
+                            if (currentY + 100 > doc.page.height - marginVal) {
+                                doc.addPage();
+                            }
+                            doc.image(carimbo2Buffer, doc.x, doc.y, { width: 150 });
+                            doc.moveDown(5);
+                            console.log(`[PDFGen] INLINE: Carimbo 2 inserido em Y=${doc.y}`);
+                        }
                     } else {
-                        // Compacto Nuclear: Tenta usar até o último pixel
-                        posY = doc.y + 2;
-                        if (posY > 825) { // Limite absoluto A4 ~841
-                            doc.addPage();
-                            posY = 20;
+                        // Renderiza o texto normal
+                        const lines = part.split('\n');
+                        for (const line of lines) {
+                            if (!line || line.trim() === '') {
+                                doc.moveDown(0.5);
+                                continue;
+                            }
+                            if (line.trim().startsWith('#')) {
+                                doc.fontSize(14).font('Helvetica-Bold')
+                                    .text(line.replace(/^#+\s*/, ''), { align: 'left' })
+                                    .moveDown(0.5);
+                                doc.fontSize(12).font('Helvetica');
+                                continue;
+                            }
+                            doc.text(line, { align: 'justify', lineGap: lineGap });
                         }
                     }
+                }
+
+            } else {
+                // --- MODO CLÁSSICO (SEM INLINE) ---
+                console.log(`[PDFGen] Modo CLÁSSICO (sem tags inline).`);
+
+                // Texto Normal
+                const lines = text.split('\n');
+                for (const line of lines) {
+                    if (!line || line.trim() === '') {
+                        doc.moveDown(0.5);
+                        continue;
+                    }
+
+                    if (line.trim().startsWith('#')) {
+                        doc.fontSize(14).font('Helvetica-Bold')
+                            .text(line.replace(/^#+\s*/, ''), { align: 'left' })
+                            .moveDown(0.5);
+                        doc.fontSize(12).font('Helvetica');
+                        continue;
+                    }
+
+                    doc.text(line, { align: 'justify', lineGap: lineGap });
+                }
+
+                // --- Gerenciamento de Carimbos (Rodapé) ---
+                const carimboHeight = 90;
+                const carimboWidth = 170;
+                const margin = marginVal;
+                const pageWidth = doc.page.width;
+
+                let posX1 = margin;
+                let posX2 = pageWidth - margin - carimboWidth;
+                let posY = doc.page.height - 180; // Padrão
+
+                // Sobrescrever se for personalizado
+                if (stampPosition === 'personalizado' && customCoords) {
+                    posX1 = Number(customCoords.x) || margin;
+                    posY = Number(customCoords.y) || posY;
+                    posX2 = posX1 + carimboWidth + 20;
                 } else {
-                    // Posicionamento
-                    if (compact) {
-                        // Cola imediata com overlap se precisar
-                        posY = doc.y + 5;
+                    // Se não houver espaço na página atual:
+                    const bottomMargin = compact ? 50 : 200;
+
+                    if (doc.y > doc.page.height - bottomMargin) {
+                        if (!compact) {
+                            doc.addPage();
+                            posY = 72;
+                        } else {
+                            // Compacto Nuclear: Tenta usar até o último pixel
+                            posY = doc.y + 2;
+                            if (posY > 825) { // Limite absoluto A4 ~841
+                                doc.addPage();
+                                posY = 20;
+                            }
+                        }
                     } else {
-                        posY = doc.page.height - 180;
+                        // Posicionamento
+                        if (compact) {
+                            // Cola imediata com overlap se precisar
+                            posY = doc.y + 5;
+                        } else {
+                            posY = doc.page.height - 180;
+                        }
                     }
                 }
-            }
 
-            console.log(`[PDFGen] Modo: ${stampPosition}, Pos: X=${posX1}, Y=${posY}`);
+                console.log(`[PDFGen] Modo: ${stampPosition}, Pos: X=${posX1}, Y=${posY}`);
 
-            if (carimbo1Buffer && (stampPosition === 'ambos' || stampPosition === 'esquerda' || stampPosition === 'personalizado')) {
-                doc.image(carimbo1Buffer, posX1, posY, { fit: [carimboWidth, carimboHeight] });
-                console.log(`[PDFGen] Carimbo 1 inserido em X=${posX1}, Y=${posY}`);
-            }
-            if (carimbo2Buffer && (stampPosition === 'ambos' || stampPosition === 'direita')) {
-                const targetX = stampPosition === 'direita' ? (pageWidth - margin - carimboWidth) : posX2;
-                doc.image(carimbo2Buffer, targetX, posY, { fit: [carimboWidth, carimboHeight] });
-                console.log(`[PDFGen] Carimbo 2 inserido em X=${targetX}, Y=${posY}`);
-            }
+                if (carimbo1Buffer && (stampPosition === 'ambos' || stampPosition === 'esquerda' || stampPosition === 'personalizado')) {
+                    doc.image(carimbo1Buffer, posX1, posY, { fit: [carimboWidth, carimboHeight] });
+                    console.log(`[PDFGen] Carimbo 1 inserido em X=${posX1}, Y=${posY}`);
+                }
+                if (carimbo2Buffer && (stampPosition === 'ambos' || stampPosition === 'direita')) {
+                    const targetX = stampPosition === 'direita' ? (pageWidth - margin - carimboWidth) : posX2;
+                    doc.image(carimbo2Buffer, targetX, posY, { fit: [carimboWidth, carimboHeight] });
+                    console.log(`[PDFGen] Carimbo 2 inserido em X=${targetX}, Y=${posY}`);
+                }
+            } // Fim do else (Modo Clássico)
+
 
             // Linha final decorativa
             const lineY = posY + carimboHeight + 10;
