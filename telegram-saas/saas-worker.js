@@ -276,6 +276,13 @@ function startBot(botData) {
                 return bot.sendMessage(chatId, "❌ Operação cancelada. Use /start para começar novamente.");
             }
 
+            if (text === '/ping') {
+                const uptime = process.uptime();
+                const memory = process.memoryUsage();
+                const memUsed = Math.round(memory.heapUsed / 1024 / 1024);
+                return bot.sendMessage(chatId, `🏓 **Pong!**\n\n🕒 Uptime: ${Math.floor(uptime)}s\n💾 Memória: ${memUsed}MB\n🚀 Versão: ${process.version}`, { parse_mode: 'Markdown' });
+            }
+
 
             // Se estiver selecionando LOJA (Texto Livre)
             if (state.step === STEPS.SELECTING_LOJA) {
@@ -632,6 +639,9 @@ async function syncBots() {
         }
 
         console.log(`✅ Total de bots rodando: ${Object.keys(activeBots).length}`);
+        if (Object.keys(activeBots).length > 0) {
+            console.log(`[Diagnostic] Bots ativos: ${Object.keys(activeBots).map(id => activeBots[id].options?.username || 'Unknown').join(', ')}`);
+        }
     } catch (e) {
         console.error("💥 Erro em syncBots:", e);
     } finally {
