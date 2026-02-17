@@ -1,0 +1,3 @@
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS logo_url TEXT;
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS carimbo_url TEXT;
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS carimbo_funcionario_url TEXT;
