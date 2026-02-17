@@ -1,5 +1,5 @@
 services:
-  - type: worker
+  - type: web
     name: telegram-saas-bot
     env: docker
     rootDir: telegram-saas

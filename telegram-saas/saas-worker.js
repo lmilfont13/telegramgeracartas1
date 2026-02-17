@@ -720,3 +720,15 @@ const shutdown = (signal) => {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
+// --- Render Web Service Requirement ---
+// Para rodar como "Web Service" (Free Tier) no Render, precisamos escutar em uma porta HTTP.
+const http = require('http');
+const port = process.env.PORT || 3000;
+const server = http.createServer((req, res) => {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/plain');
+    res.end('Telegram SaaS Bot is Running! 🚀\n');
+});
+server.listen(port, () => {
+    console.log(`🌐 Server listening on port ${port}`);
+});
