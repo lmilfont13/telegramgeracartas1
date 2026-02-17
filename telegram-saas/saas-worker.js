@@ -155,19 +155,14 @@ function extractField(funcionario, type) {
                 if (type === 'loja' && val.length === 2 && config.keys.indexOf(keyPattern) > 5) {
                     continue;
                 }
-                if (config.valueCheck(val)) return val;
+                if (config.valueCheck(val)) {
+                    console.log(`[extractField] Found '${type}' in key '${actualKey}': '${val}'`);
+                    return val;
+                }
             }
         }
     }
-
-    // 2. Fallback específico para nome
-    if (type === 'nome') {
-        for (const val of Object.values(extras)) {
-            const sVal = String(val).trim();
-            if (sVal.length > 8 && sVal.includes(' ') && (sVal.match(/\d/g) || []).length < 4) return sVal;
-        }
-    }
-
+    console.log(`[extractField] Could not find field '${type}' in extras:`, Object.keys(extras));
     return funcionario[type] || '';
 }
 
