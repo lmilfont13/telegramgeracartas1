@@ -36,10 +36,10 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
     const carimbo1Buffer = await downloadImage(carimbo1Url);
     const carimbo2Buffer = await downloadImage(carimbo2Url);
 
-    const marginVal = compact ? 30 : 72;
-    const fontSizeBody = compact ? 8.5 : 12;
-    const lineGap = compact ? -0.5 : 2;
-    const startY = compact ? 80 : 140;
+    const marginVal = compact ? 25 : 72;
+    const fontSizeBody = compact ? 8 : 12;
+    const lineGap = compact ? -1.5 : 2;
+    const startY = compact ? 60 : 140;
 
     return new Promise((resolve, reject) => {
         try {
@@ -121,25 +121,25 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 posX2 = posX1 + carimboWidth + 20;
             } else {
                 // Se não houver espaço na página atual:
-                const bottomMargin = compact ? 100 : 200;
+                const bottomMargin = compact ? 50 : 200;
 
                 if (doc.y > doc.page.height - bottomMargin) {
                     if (!compact) {
                         doc.addPage();
                         posY = 72;
                     } else {
-                        // Compacto: Tenta usar o que tem mesmo que fique apertado
-                        posY = doc.y + 5;
-                        if (posY > 810) { // Limite absoluto A4 ~840
+                        // Compacto Nuclear: Tenta usar até o último pixel
+                        posY = doc.y + 2;
+                        if (posY > 825) { // Limite absoluto A4 ~841
                             doc.addPage();
-                            posY = 30;
+                            posY = 20;
                         }
                     }
                 } else {
                     // Posicionamento
                     if (compact) {
-                        // No modo compacto, COLA logo após o texto, não empurra pro final
-                        posY = doc.y + 10;
+                        // Cola imediata com overlap se precisar
+                        posY = doc.y + 5;
                     } else {
                         posY = doc.page.height - 180;
                     }
