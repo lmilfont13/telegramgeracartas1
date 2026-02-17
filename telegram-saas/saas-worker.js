@@ -129,6 +129,11 @@ function extractField(funcionario, type) {
             keys: ['empresa', 'companhia', 'razao', 'contratante'],
             blacklist: [],
             valueCheck: (v) => v && v.length >= 3
+        },
+        cdc: {
+            keys: ['cdc', 'centro', 'custo'],
+            blacklist: [],
+            valueCheck: (v) => v && v.length >= 2
         }
     };
 
@@ -185,7 +190,7 @@ function renderTemplate(template, funcionario, botData) {
         '{{RG}}': extractField(funcionario, 'rg'),
         '{{CPF}}': extractField(funcionario, 'cpf'),
         '{{EMPRESA}}': botData.nome_empresa || extractField(funcionario, 'empresa'),
-        '{{CDC}}': botData.loja_selecionada || extractField(funcionario, 'loja'),
+        '{{CDC}}': extractField(funcionario, 'cdc'),
         '{{DATA}}': new Date().toLocaleDateString('pt-BR'),
         '{{NOME_FUNCIONARIO}}': extractField(funcionario, 'nome'),
         '{{DATA_ATUAL}}': new Date().toLocaleDateString('pt-BR'),
@@ -451,7 +456,6 @@ function startBot(botData) {
                 state.step = STEPS.SELECTING_POSITION;
 
                 const buttons = [
-                    [{ text: '⬅️ Esquerda', callback_data: 'p:esquerda' }, { text: '➡️ Direita', callback_data: 'p:direita' }],
                     [{ text: '↔️ Ambos', callback_data: 'p:ambos' }],
                     [{ text: '📍 Personalizado (X/Y)', callback_data: 'p:personalizado' }]
                 ];
