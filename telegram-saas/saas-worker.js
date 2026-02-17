@@ -29,7 +29,12 @@ const { generateSaaSPDF } = require('./saas-pdf-generator');
 
 // Armazena instâncias de bots ativos: { [botId]: TelegramBotInstance }
 const activeBots = {};
-let isSyncing = false; // Lock para evitar execuções simultâneas
+// Lock para evitar execuções simultâneas
+let isSyncing = false;
+
+// ID único desta instância (para detectar duplicidade/split-brain)
+const INSTANCE_ID = Math.random().toString(36).substring(7).toUpperCase();
+console.log(`🆔 Instance ID: ${INSTANCE_ID}`);
 
 
 // Gerenciador de Estados dos Usuários
@@ -283,7 +288,7 @@ function startBot(botData) {
                 const uptime = process.uptime();
                 const memory = process.memoryUsage();
                 const memUsed = Math.round(memory.heapUsed / 1024 / 1024);
-                return bot.sendMessage(chatId, `🏓 **Pong!**\n\n🕒 Uptime: ${Math.floor(uptime)}s\n💾 Memória: ${memUsed}MB\n🚀 Versão: ${process.version}`, { parse_mode: 'Markdown' });
+                return bot.sendMessage(chatId, `🏓 **Pong!**\n\n🆔 Instância: \`${INSTANCE_ID}\`\n🕒 Uptime: ${Math.floor(uptime)}s\n💾 Memória: ${memUsed}MB\n🚀 Versão: ${process.version}`, { parse_mode: 'Markdown' });
             }
 
 
