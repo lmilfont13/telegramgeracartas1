@@ -6,12 +6,16 @@ if (fs.existsSync('.env.local')) {
     require('dotenv').config({ path: '.env.local' });
 }
 
+// Debug: Lista os nomes das variáveis disponíveis (sem os valores por segurança)
+console.log("--- Diagnóstico de Ambiente ---");
+console.log("Variáveis detectadas:", Object.keys(process.env).filter(k => k.includes('SUPABASE') || k.includes('NEXT_PUBLIC')));
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
     console.error("❌ ERRO: Variáveis de ambiente Supabase (URL ou KEY) não encontradas.");
-    console.error("Certifique-se de que elas foram adicionadas no Dashboard do Render ou Vercel.");
+    console.error("Chaves esperadas: NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY");
     process.exit(1);
 }
 
