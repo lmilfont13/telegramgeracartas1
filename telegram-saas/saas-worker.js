@@ -676,4 +676,18 @@ process.on('unhandledRejection', (reason, promise) => {
 syncBots();
 
 // Sincronizar a cada 60 segundos
+// Sincronizar a cada 60 segundos
 setInterval(syncBots, 60000);
+
+// Graceful Shutdown
+const shutdown = (signal) => {
+    console.log(`🛑 Recebido ${signal}. Encerrando bots...`);
+    Object.keys(activeBots).forEach(id => stopBot(id));
+    setTimeout(() => {
+        console.log('👋 Adeus!');
+        process.exit(0);
+    }, 1000);
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
