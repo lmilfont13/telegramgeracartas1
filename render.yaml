@@ -1,0 +1,9 @@
+services:
+  - type: worker
+    name: telegram-saas-bot
+    env: docker
+    rootDir: telegram-saas
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: NODE_ENV
+        value: production
