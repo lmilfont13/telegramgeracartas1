@@ -242,15 +242,19 @@ function startBot(botData) {
 
                 // Busca empresas disponíveis
                 try {
+                    console.log(`[Bot ${botData.nome}] DEBUG: Buscando empresas...`);
                     const { data: empresas, error: empErr } = await supabase.from('empresas').select('id, nome').order('nome');
 
                     if (empErr) throw empErr;
+                    console.log(`[Bot ${botData.nome}] DEBUG: Empresas encontradas: ${empresas?.length}`);
+
                     if (!empresas || empresas.length === 0) {
                         return bot.sendMessage(chatId, "❌ Nenhuma empresa cadastrada no sistema.");
                     }
 
                     const buttons = empresas.map(emp => ([{ text: emp.nome, callback_data: `e:${emp.id}` }]));
 
+                    console.log(`[Bot ${botData.nome}] DEBUG: Enviando mensagem...`);
                     return bot.sendMessage(chatId, `🏢 **Selecione a Empresa** para iniciar:`, {
                         parse_mode: 'Markdown',
                         reply_markup: { inline_keyboard: buttons }
