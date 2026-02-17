@@ -140,6 +140,16 @@ function extractField(funcionario, type) {
             keys: ['agencia', 'age', 'banco', 'banking'],
             blacklist: [],
             valueCheck: (v) => v && v.length >= 2
+        },
+        carteira: {
+            keys: ['carteira', 'ctps', 'trabalho'],
+            blacklist: [],
+            valueCheck: (v) => v && v.length >= 3
+        },
+        serie: {
+            keys: ['serie', 'serial'],
+            blacklist: [],
+            valueCheck: (v) => v && v.length >= 1
         }
     };
 
@@ -195,7 +205,10 @@ function renderTemplate(template, funcionario, botData) {
         '{{DATA}}': new Date().toLocaleDateString('pt-BR'),
         '{{NOME_FUNCIONARIO}}': extractField(funcionario, 'nome'),
         '{{DATA_ATUAL}}': new Date().toLocaleDateString('pt-BR'),
-        '{{DATA_ADMISSAO}}': funcionario.data_admissao ? new Date(funcionario.data_admissao).toLocaleDateString('pt-BR') : '-'
+        '{{DATA_ADMISSAO}}': funcionario.data_admissao ? new Date(funcionario.data_admissao).toLocaleDateString('pt-BR') : '-',
+        '{{numero_carteira_trabalho}}': extractField(funcionario, 'carteira'),
+        '{{Serie}}': extractField(funcionario, 'serie'),
+        '{{agencia}}': extractField(funcionario, 'agencia')
     };
 
     console.log(`[Bot ${botData.nome}] Valores dos Placeholders:`, JSON.stringify(placeholders, null, 2));

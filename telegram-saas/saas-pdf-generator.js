@@ -37,9 +37,9 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
     const carimbo2Buffer = await downloadImage(carimbo2Url);
 
     const marginVal = compact ? 40 : 72;
-    const fontSizeBody = compact ? 10 : 12;
-    const lineGap = compact ? 1 : 2;
-    const startY = compact ? 110 : 140;
+    const fontSizeBody = compact ? 9 : 12;
+    const lineGap = compact ? 0.5 : 2;
+    const startY = compact ? 100 : 140;
 
     return new Promise((resolve, reject) => {
         try {
@@ -120,11 +120,32 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 posY = Number(customCoords.y) || posY;
                 posX2 = posX1 + carimboWidth + 20;
             } else {
-                // Se não houver espaço na página atual, adiciona uma nova
-                const bottomMargin = 200;
+                // Se não houver espaço na página atual:
+                // Em modo compacto, TENTA FORÇAR na mesma página se der (reduzindo margem inferior)
+                const bottomMargin = compact ? 120 : 200;
+
                 if (doc.y > doc.page.height - bottomMargin) {
-                    doc.addPage();
-                    posY = 72; // Topo da nova página se for o caso
+                    // Se for compact E sobrar pouquinho, talvez não quebre página? 
+                    // Mas se ultrapassar muito, paciência.
+                    if (!compact) {
+                        doc.addPage();
+                        posY = 72;
+                    } else {
+                        // Compacto tenta usar o espaço final
+                        posY = doc.y + 10;
+                        // Se mesmo assim estourar muito, cria página (limitado a 800)
+                        if (posY > 800) {
+                            doc.addPage();
+                            posY = 40;
+                        }
+                    }
+                } else {
+                    // Posição padrão baseada no final do texto ou fixa embaixo?
+                    // O código original usava fixed bottom (page.height - 180).
+                    // Vamos tentar manter fixo embaixo se der, senão logo após texto
+                    if (compact) {
+                        posY = Math.max(doc.y + 20, doc.page.height - 150);
+                    }
                 }
             }
 
