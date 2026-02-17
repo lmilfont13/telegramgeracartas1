@@ -185,7 +185,8 @@ function renderTemplate(template, funcionario, botData) {
         '{{RG}}': extractField(funcionario, 'rg'),
         '{{CPF}}': extractField(funcionario, 'cpf'),
         '{{EMPRESA}}': botData.nome_empresa || extractField(funcionario, 'empresa'),
-        '{{DATA}}': funcionario.data_admissao ? new Date(funcionario.data_admissao).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR'),
+        '{{CDC}}': botData.loja_selecionada || extractField(funcionario, 'loja'),
+        '{{DATA}}': new Date().toLocaleDateString('pt-BR'),
         '{{NOME_FUNCIONARIO}}': extractField(funcionario, 'nome'),
         '{{DATA_ATUAL}}': new Date().toLocaleDateString('pt-BR'),
         '{{DATA_ADMISSAO}}': funcionario.data_admissao ? new Date(funcionario.data_admissao).toLocaleDateString('pt-BR') : '-'
