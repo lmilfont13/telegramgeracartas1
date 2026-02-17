@@ -322,7 +322,7 @@ function startBot(botData) {
                 if (isNaN(x)) return bot.sendMessage(chatId, "Por favor, digite um número válido para a largura (X):");
                 state.data.customCoords = { x };
                 state.step = STEPS.AWAITING_CUSTOM_Y;
-                return bot.sendMessage(chatId, "Agora digite a **altura (Y)** (ex: 600):");
+                return bot.sendMessage(chatId, "Agora digite a **altura (Y)**:\n\n💡 _Referência Padrão: 660 (Base da página)_");
             }
 
             if (state.step === STEPS.AWAITING_CUSTOM_Y) {
@@ -467,7 +467,7 @@ function startBot(botData) {
                 if (value === 'personalizado') {
                     state.step = STEPS.AWAITING_CUSTOM_X;
                     bot.answerCallbackQuery(query.id);
-                    return bot.sendMessage(chatId, "Digite a **largura (X)** desejada (ex: 72 para esquerda, 400 para direita):");
+                    return bot.sendMessage(chatId, "Digite a **largura (X)** desejada:\n\n💡 _Referência Padrão: 72 (Margem Esquerda)_");
                 } else {
                     state.data.stampPosition = value;
                     state.data.customCoords = null;
