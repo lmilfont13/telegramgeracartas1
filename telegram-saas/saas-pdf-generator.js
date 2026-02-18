@@ -85,10 +85,8 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
 
             console.log(`[PDFGen] Texto a ser escrito (primeiros 100 chars): "${text.substring(0, 100).replace(/\n/g, ' ')}..."`);
 
-            // --- INLINE STAMP CHECK ---
-            const hasInlineStamp1 = text.includes('{{CARIMBO_1}}');
-            const hasInlineStamp2 = text.includes('{{CARIMBO_2}}');
-            const hasAnyInline = hasInlineStamp1 || hasInlineStamp2;
+            // Regex para INLINE é removido. Agora detectamos linha a linha para OVERLAY.
+            let pendingStamps = [];
 
             // Variáveis comuns para o rodapé (definidas fora para evitar erro de escopo)
             const carimboHeight = 90;
@@ -97,121 +95,91 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             const pageWidth = doc.page.width;
             let posY = doc.page.height - 180; // Valor padrão para uso posterior
 
-            if (hasAnyInline) {
-                console.log(`[PDFGen] Modo INLINE detectado. Carimbo 1: ${hasInlineStamp1}, Carimbo 2: ${hasInlineStamp2}`);
-
-                // Regex para separar os tokens mantendo-os no array
-                const parts = text.split(/({{CARIMBO_[12]}})/g);
-
-                for (const part of parts) {
-                    // Configuração SUPER Compacta (Atacadão)
-                    const fontSizeUsed = compact ? 7 : 12; // Modificado para 7pt no modo compacto
-                    const lineGapUsed = compact ? -1.5 : 2;
-
-                    doc.fontSize(fontSizeUsed);
-                    doc.fillColor('black');
-
-                    if (part === '{{CARIMBO_1}}') {
-                        if (carimbo1Buffer) {
-                            const currentY = doc.y;
-                            // Se não couber na página, cria nova
-                            if (currentY + 70 > doc.page.height - marginVal) { // Reduzido threshold
-                                doc.addPage();
-                                doc.fontSize(fontSizeUsed);
-                            }
-
-                            // Centraliza o carimbo
-                            const xPos = (doc.page.width - 120) / 2; // Reduzido width visual
-
-                            // Altura REDUZIDA para caber em uma página
-                            // Antes: ~90px. Agora: ~60px
-                            doc.image(carimbo1Buffer, xPos, doc.y, { width: 120, height: 60 });
-
-                            // Avança o cursor Y EXATAMENTE a altura da imagem + padding MÍNIMO
-                            // 60px (altura) + 5px padding
-                            doc.y += 65;
-
-                            console.log(`[PDFGen] INLINE: Carimbo 1 inserido em Y=${doc.y} (Compact Mode)`);
-                            posY = doc.y;
-                        }
-                    } else if (part === '{{CARIMBO_2}}') {
-                        if (carimbo2Buffer) {
-                            const currentY = doc.y;
-                            if (currentY + 70 > doc.page.height - marginVal) {
-                                doc.addPage();
-                                doc.fontSize(fontSizeUsed);
-                            }
-
-                            const xPos = (doc.page.width - 120) / 2;
-                            doc.image(carimbo2Buffer, xPos, doc.y, { width: 120, height: 60 });
-
-                            doc.y += 65;
-
-                            console.log(`[PDFGen] INLINE: Carimbo 2 inserido em Y=${doc.y} (Compact Mode)`);
-                            posY = doc.y;
-                        }
-                    } else {
-                        // Renderiza o texto normal
-                        const lines = part.split('\n');
-                        for (const line of lines) {
-                            if (!line) { // Linha vazia ou null
-                                if (compact) {
-                                    // No modo compacto, reduz o pulo de linha vazia tb
-                                    doc.y += 1.5;
-                                } else {
-                                    doc.moveDown(0.5);
-                                }
-                                continue;
-                            }
-
-                            if (line.trim() === '') {
-                                if (compact) doc.y += 1.5;
-                                else doc.moveDown(0.5);
-                                continue;
-                            }
-
-                            if (line.trim().startsWith('#')) {
-                                doc.fontSize(compact ? 9 : 14).font('Helvetica-Bold')
-                                    .text(line.replace(/^#+\s*/, ''), { align: 'left' })
-                                    .moveDown(0.2);
-                                doc.fontSize(fontSizeUsed).font('Helvetica');
-                                continue;
-                            }
-
-                            // Força lineGap negativo no modo compacto
-                            doc.text(line, { align: 'justify', lineGap: lineGapUsed });
-                        }
-                        // Atualiza posY após texto também
-                        posY = doc.y;
-                    }
-                }
-
+            // Configuração Compacta (Reaplicar para garantir)
+            if (compact) {
+                doc.fontSize(8);
+                doc.fillColor('black');
             } else {
-                // --- MODO CLÁSSICO (SEM INLINE) ---
-                console.log(`[PDFGen] Modo CLÁSSICO (sem tags inline).`);
+                doc.fontSize(12);
+            }
 
-                // Texto Normal
-                const lines = text.split('\n');
-                for (const line of lines) {
-                    if (!line || line.trim() === '') {
+            const lines = text.split('\n');
+            for (let line of lines) {
+                if (!line) { // Linha vazia ou null
+                    if (compact) {
+                        doc.y += 1.5;
+                    } else {
                         doc.moveDown(0.5);
-                        continue;
                     }
-
-                    if (line.trim().startsWith('#')) {
-                        doc.fontSize(14).font('Helvetica-Bold')
-                            .text(line.replace(/^#+\s*/, ''), { align: 'left' })
-                            .moveDown(0.5);
-                        doc.fontSize(12).font('Helvetica');
-                        continue;
-                    }
-
-                    doc.text(line, { align: 'justify', lineGap: lineGap });
+                    continue;
                 }
 
-                // --- Gerenciamento de Carimbos (Rodapé) ---
-                // Variáveis já definidas acima (carimboHeight, etc)
+                if (line.trim() === '') {
+                    if (compact) doc.y += 1.5;
+                    else doc.moveDown(0.5);
+                    continue;
+                }
 
+                // --- DETECÇÃO DE CARIMBO (OVERLAY) ---
+                if (line.includes('{{CARIMBO_1}}')) {
+                    if (carimbo1Buffer) {
+                        // Salva Y atual para desenhar carimbo DEPOIS (flutuante)
+                        // Ajuste fino: doc.y sobe um pouco pq o carimbo é grande
+                        pendingStamps.push({
+                            type: 1,
+                            y: doc.y - 15,
+                            buffer: carimbo1Buffer
+                        });
+                        console.log(`[PDFGen] OVERLAY: Carimbo 1 agendado para Y=${doc.y}`);
+                    }
+                    // Remove a tag da linha para não imprimir
+                    line = line.replace('{{CARIMBO_1}}', '');
+                }
+
+                if (line.includes('{{CARIMBO_2}}')) {
+                    if (carimbo2Buffer) {
+                        pendingStamps.push({
+                            type: 2,
+                            y: doc.y - 15,
+                            buffer: carimbo2Buffer
+                        });
+                        console.log(`[PDFGen] OVERLAY: Carimbo 2 agendado para Y=${doc.y}`);
+                    }
+                    line = line.replace('{{CARIMBO_2}}', '');
+                }
+
+                // Renderiza o texto (agora limpo das tags)
+                if (line.trim().startsWith('#')) {
+                    doc.fontSize(compact ? 9 : 14).font('Helvetica-Bold')
+                        .text(line.replace(/^#+\s*/, ''), { align: 'left' })
+                        .moveDown(0.2);
+                    doc.fontSize(compact ? 8 : 12).font('Helvetica');
+                    continue;
+                }
+
+                // Força lineGap negativo no modo compacto
+                doc.text(line, { align: 'justify', lineGap: compact ? -1.5 : 2 });
+            }
+
+            // --- DESENHAR CARIMBOS PENDENTES (OVERLAY) ---
+            for (const stamp of pendingStamps) {
+                // Desenha em cima de tudo (overlay)
+                // Centraliza horizontalmente
+                const xPos = (doc.page.width - 120) / 2;
+
+                // Salva estado para não afetar cursor
+                doc.save();
+                doc.image(stamp.buffer, xPos, stamp.y, { width: 120, height: 60 });
+                doc.restore();
+            }
+
+            // Atualiza posY baseada no final do texto
+            posY = doc.y;
+
+            // Se NÃO tiver carimbos inline, usa comportamento padrão de rodapé
+            if (pendingStamps.length === 0) {
+                // --- MODO CLÁSSICO (SEM INLINE) ---
+                // ... (lógica anterior de rodapé)
                 let posX1 = margin;
                 let posX2 = pageWidth - margin - carimboWidth;
 
@@ -259,9 +227,9 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     console.log(`[PDFGen] Carimbo 2 inserido em X=${targetX}, Y=${posY}`);
                 }
 
-                // Ajusta posY para a linha final ficar abaixo dos carimbos (com comportamento normal)
+                // Ajusta posY para a linha final
                 posY = posY + carimboHeight;
-            } // Fim do else (Modo Clássico)
+            } // Fim do check se não tem stamps pendentes
 
 
             // --- FORÇAR RODAPÉ NA MESMA PÁGINA (NUCLEAR) ---
