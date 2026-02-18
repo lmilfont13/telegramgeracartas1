@@ -631,7 +631,10 @@ async function generateAndSendPDF(bot, chatId, data, botData) {
 
     } catch (e) {
         console.error(`[Bot ${botData.nome}] Erro na geração final:`, e);
-        bot.sendMessage(chatId, "❌ Erro ao finalizar o PDF. Tente novamente com /start.");
+        // Envia o erro DETALHADO para o usuário (para facilitar debug)
+        bot.sendMessage(chatId, `❌ Erro ao gerar PDF:\n\n${e.message}\n\n(Tente novamente com /start)`);
+
+        // Limpa estado para evitar travar o usuário
         userStates[chatId] = { step: STEPS.IDLE, data: {} };
     }
 }
