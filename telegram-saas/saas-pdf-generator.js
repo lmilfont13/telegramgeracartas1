@@ -120,56 +120,47 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     continue;
                 }
 
-                // --- DETECÇÃO DE CARIMBO (LOGICA MIXTA: BLOCO vs INLINE) ---
+                // --- DETECÇÃO DE CARIMBO (LÓGICA UNIFICADA: SEMPRE AVANÇA) ---
+                // Se a linha tem o carimbo, desenha AGORA e avança o cursor.
+                // Isso resolve a sobreposição e garante o posicionamento.
 
-                // Caso 1: CARIMBO EM LINHA ISOLADA (BLOCO)
-                // O usuário colocou o carimbo numa linha sozinha. Ele quer espaço reservado.
-                const trimmedLine = line.trim();
-
-                if (trimmedLine === '{{CARIMBO_1}}') {
+                if (line.includes('{{CARIMBO_1}}')) {
                     if (carimbo1Buffer) {
-                        // Desenha AGORA e avança o cursor
+                        // Se não couber na página, cria nova
+                        if (doc.y + 70 > doc.page.height - marginVal) {
+                            doc.addPage();
+                            doc.fontSize(compact ? 8 : 12);
+                        }
+
+                        // Centraliza e desenha
                         const xPos = (doc.page.width - 120) / 2;
                         doc.image(carimbo1Buffer, xPos, doc.y, { width: 120, height: 60 });
-                        doc.y += 65; // Avança para não encavalar
-                        console.log(`[PDFGen] BLOCO: Carimbo 1 desenhado em Y=${doc.y - 65}`);
+
+                        // Avança o cursor para RESERVAR espaço
+                        doc.y += 65;
+
+                        console.log(`[PDFGen] UNIFIED: Carimbo 1 desenhado em Y=${doc.y - 65}`);
+                        posY = doc.y;
                     }
                     continue; // Pula a escrita de texto dessa linha (ja foi tratada)
                 }
 
-                if (trimmedLine === '{{CARIMBO_2}}') {
-                    if (carimbo2Buffer) {
-                        const xPos = (doc.page.width - 120) / 2;
-                        doc.image(carimbo2Buffer, xPos, doc.y, { width: 120, height: 60 });
-                        doc.y += 65;
-                        console.log(`[PDFGen] BLOCO: Carimbo 2 desenhado em Y=${doc.y - 65}`);
-                    }
-                    continue;
-                }
-
-                // Caso 2: CARIMBO NO MEIO DO TEXTO (OVERLAY/INLINE)
-                if (line.includes('{{CARIMBO_1}}')) {
-                    if (carimbo1Buffer) {
-                        pendingStamps.push({
-                            type: 1,
-                            y: doc.y - 15,
-                            buffer: carimbo1Buffer
-                        });
-                        console.log(`[PDFGen] OVERLAY: Carimbo 1 agendado para Y=${doc.y}`);
-                    }
-                    line = line.replace('{{CARIMBO_1}}', '');
-                }
-
                 if (line.includes('{{CARIMBO_2}}')) {
                     if (carimbo2Buffer) {
-                        pendingStamps.push({
-                            type: 2,
-                            y: doc.y - 15,
-                            buffer: carimbo2Buffer
-                        });
-                        console.log(`[PDFGen] OVERLAY: Carimbo 2 agendado para Y=${doc.y}`);
+                        if (doc.y + 70 > doc.page.height - marginVal) {
+                            doc.addPage();
+                            doc.fontSize(compact ? 8 : 12);
+                        }
+
+                        const xPos = (doc.page.width - 120) / 2;
+                        doc.image(carimbo2Buffer, xPos, doc.y, { width: 120, height: 60 });
+
+                        doc.y += 65;
+
+                        console.log(`[PDFGen] UNIFIED: Carimbo 2 desenhado em Y=${doc.y - 65}`);
+                        posY = doc.y;
                     }
-                    line = line.replace('{{CARIMBO_2}}', '');
+                    continue;
                 }
 
                 // Renderiza o texto (agora limpo das tags)
