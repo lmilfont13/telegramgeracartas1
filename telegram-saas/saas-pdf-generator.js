@@ -120,87 +120,81 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     continue;
                 }
 
-                // --- DETECÇÃO DE CARIMBO (LÓGICA UNIFICADA: SEMPRE AVANÇA) ---
-                // Se a linha tem o carimbo, desenha AGORA e avança o cursor.
-                // Isso resolve a sobreposição e garante o posicionamento.
+                // --- DETECÇÃO E POSICIONAMENTO EXATO DOS CARIMBOS ---
+                // Agora calculamos a posição X baseada no texto ANTES do placeholder.
+
+                let extraY = 0; // Espaço extra a adicionar DEPOIS de imprimir a linha
 
                 if (line.includes('{{CARIMBO_1}}')) {
+                    hasInlineStamps = true;
                     if (carimbo1Buffer) {
-                        // Se não couber na página, cria nova
-                        if (doc.y + 70 > doc.page.height - marginVal) {
-                            doc.addPage();
-                            doc.fontSize(compact ? 8 : 12);
+                        try {
+                            // Calcula X baseado no prefixo
+                            const idx = line.indexOf('{{CARIMBO_1}}');
+                            const prefix = line.substring(0, idx);
+                            const prefixWidth = doc.widthOfString(prefix);
+                            let xPos = margin + prefixWidth;
+
+                            // Ajuste fino se o usuário usou espaços
+                            console.log(`[PDFGen] Placeholder 1 encontrado. Prefix: "${prefix}", Width: ${prefixWidth}, X: ${xPos}`);
+
+                            // Desenha o carimbo NA LINHA ATUAL (overlay)
+                            doc.image(carimbo1Buffer, xPos, doc.y - 10, { width: 120, height: 60 });
+                            // Nota: doc.y - 10 para subir um pouco e centralizar na linha de base
+
+                            extraY = Math.max(extraY, 50); // Reserva espaço
+                        } catch (e) {
+                            console.error("Erro ao calcular posição do carimbo 1:", e);
                         }
-
-
-                        // Lógica de Posição Horizontal (Respeitando stampPosition)
-                        let xPos = (doc.page.width - 120) / 2; // Default Centro
-
-                        if (stampPosition === 'esquerda') xPos = margin;
-                        else if (stampPosition === 'direita') xPos = pageWidth - margin - 120;
-                        else if (stampPosition === 'ambos') xPos = margin; // Carimbo 1 na Esquerda
-                        else if (stampPosition === 'personalizado' && customCoords) xPos = Number(customCoords.x) || margin;
-
-                        doc.image(carimbo1Buffer, xPos, doc.y, { width: 120, height: 60 });
-
-                        // Avança o cursor para RESERVAR espaço
-                        doc.y += 65;
-
-                        console.log(`[PDFGen] UNIFIED: Carimbo 1 desenhado em Y=${doc.y - 65}`);
-                        posY = doc.y;
                     }
-                    continue; // Pula a escrita de texto dessa linha (ja foi tratada)
+                    // Remove o placeholder da string para imprimir o resto limpo
+                    line = line.replace('{{CARIMBO_1}}', '          ');
                 }
 
                 if (line.includes('{{CARIMBO_2}}')) {
+                    hasInlineStamps = true;
                     if (carimbo2Buffer) {
-                        if (doc.y + 70 > doc.page.height - marginVal) {
-                            doc.addPage();
-                            doc.fontSize(compact ? 8 : 12);
+                        try {
+                            const idx = line.indexOf('{{CARIMBO_2}}');
+                            const prefix = line.substring(0, idx);
+                            const prefixWidth = doc.widthOfString(prefix);
+                            let xPos = margin + prefixWidth;
+
+                            console.log(`[PDFGen] Placeholder 2 encontrado. Prefix: "${prefix}", Width: ${prefixWidth}, X: ${xPos}`);
+
+                            doc.image(carimbo2Buffer, xPos, doc.y - 10, { width: 120, height: 60 });
+
+                            extraY = Math.max(extraY, 50);
+                        } catch (e) {
+                            console.error("Erro ao calcular posição do carimbo 2:", e);
                         }
-
-
-                        let xPos = (doc.page.width - 120) / 2; // Default Centro
-
-                        if (stampPosition === 'esquerda') xPos = margin;
-                        else if (stampPosition === 'direita') xPos = pageWidth - margin - 120;
-                        else if (stampPosition === 'ambos') xPos = pageWidth - margin - 120; // Carimbo 2 na Direita
-                        else if (stampPosition === 'personalizado' && customCoords) xPos = Number(customCoords.x) + 140 || (pageWidth - margin - 120);
-
-                        doc.image(carimbo2Buffer, xPos, doc.y, { width: 120, height: 60 });
-
-                        doc.y += 65;
-
-                        console.log(`[PDFGen] UNIFIED: Carimbo 2 desenhado em Y=${doc.y - 65}`);
-                        posY = doc.y;
                     }
-                    continue;
+                    line = line.replace('{{CARIMBO_2}}', '          ');
                 }
 
-                // Renderiza o texto (agora limpo das tags)
+                // Renderiza o texto (agora limpo das tags, mas COM o conteúdo restante)
                 if (line.trim().startsWith('#')) {
                     doc.fontSize(compact ? 9 : 14).font('Helvetica-Bold')
                         .text(line.replace(/^#+\s*/, ''), { align: 'left' })
                         .moveDown(0.2);
                     doc.fontSize(compact ? 8 : 12).font('Helvetica');
+                    // Se tiver carimbo no título (raro), avança
+                    if (extraY > 0) doc.y += extraY;
                     continue;
                 }
 
-                // Força lineGap negativo no modo compacto
-                doc.text(line, { align: 'justify', lineGap: compact ? -1.5 : 2 });
-            }
+                // Imprime a linha
+                doc.text(line, { align: 'left', lineGap: compact ? -1.5 : 2 });
 
-            // --- DESENHAR CARIMBOS PENDENTES (OVERLAY) ---
-            for (const stamp of pendingStamps) {
-                // Desenha em cima de tudo (overlay)
-                // Centraliza horizontalmente
-                const xPos = (doc.page.width - 120) / 2;
+                // Avança o espaço reservado para os carimbos
+                if (extraY > 0) {
+                    doc.y += extraY;
+                    posY = doc.y; // Atualiza rastreador
+                }
 
-                // Salva estado para não afetar cursor
-                doc.save();
-                doc.image(stamp.buffer, xPos, stamp.y, { width: 120, height: 60 });
-                doc.restore();
+                continue; // Já imprimimos a linha manualmente acima
             }
+            // (Removemos o loop pendingStamps antigo aqui)
 
             // Atualiza posY baseada no final do texto
             posY = doc.y;
