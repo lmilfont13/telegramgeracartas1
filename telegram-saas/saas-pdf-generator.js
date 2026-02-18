@@ -132,8 +132,15 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                             doc.fontSize(compact ? 8 : 12);
                         }
 
-                        // Centraliza e desenha
-                        const xPos = (doc.page.width - 120) / 2;
+
+                        // Lógica de Posição Horizontal (Respeitando stampPosition)
+                        let xPos = (doc.page.width - 120) / 2; // Default Centro
+
+                        if (stampPosition === 'esquerda') xPos = margin;
+                        else if (stampPosition === 'direita') xPos = pageWidth - margin - 120;
+                        else if (stampPosition === 'ambos') xPos = margin; // Carimbo 1 na Esquerda
+                        else if (stampPosition === 'personalizado' && customCoords) xPos = Number(customCoords.x) || margin;
+
                         doc.image(carimbo1Buffer, xPos, doc.y, { width: 120, height: 60 });
 
                         // Avança o cursor para RESERVAR espaço
@@ -152,7 +159,14 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                             doc.fontSize(compact ? 8 : 12);
                         }
 
-                        const xPos = (doc.page.width - 120) / 2;
+
+                        let xPos = (doc.page.width - 120) / 2; // Default Centro
+
+                        if (stampPosition === 'esquerda') xPos = margin;
+                        else if (stampPosition === 'direita') xPos = pageWidth - margin - 120;
+                        else if (stampPosition === 'ambos') xPos = pageWidth - margin - 120; // Carimbo 2 na Direita
+                        else if (stampPosition === 'personalizado' && customCoords) xPos = Number(customCoords.x) + 140 || (pageWidth - margin - 120);
+
                         doc.image(carimbo2Buffer, xPos, doc.y, { width: 120, height: 60 });
 
                         doc.y += 65;
@@ -192,9 +206,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             posY = doc.y;
 
             // Se NÃO tiver carimbos inline, usa comportamento padrão de rodapé
-            if (pendingStamps.length === 0) {
-                // --- MODO CLÁSSICO (SEM INLINE) ---
-                // ... (lógica anterior de rodapé)
+            if (!hasInlineStamps) {
                 let posX1 = margin;
                 let posX2 = pageWidth - margin - carimboWidth;
 
@@ -230,16 +242,14 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     }
                 }
 
-                console.log(`[PDFGen] Modo: ${stampPosition}, Pos: X=${posX1}, Y=${posY}`);
+                console.log(`[PDFGen] Modo Footer: ${stampPosition}, Pos: X1=${posX1}, Y=${posY}`);
 
                 if (carimbo1Buffer && (stampPosition === 'ambos' || stampPosition === 'esquerda' || stampPosition === 'personalizado')) {
                     doc.image(carimbo1Buffer, posX1, posY, { fit: [carimboWidth, carimboHeight] });
-                    console.log(`[PDFGen] Carimbo 1 inserido em X=${posX1}, Y=${posY}`);
                 }
                 if (carimbo2Buffer && (stampPosition === 'ambos' || stampPosition === 'direita')) {
                     const targetX = stampPosition === 'direita' ? (pageWidth - margin - carimboWidth) : posX2;
                     doc.image(carimbo2Buffer, targetX, posY, { fit: [carimboWidth, carimboHeight] });
-                    console.log(`[PDFGen] Carimbo 2 inserido em X=${targetX}, Y=${posY}`);
                 }
 
                 // Ajusta posY para a linha final

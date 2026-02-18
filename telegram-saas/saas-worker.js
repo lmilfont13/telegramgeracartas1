@@ -568,6 +568,11 @@ async function generateAndSendPDF(bot, chatId, data, botData) {
         // 2. Busca Empresa selecionada (para Logo/Carimbos)
         const { data: empresa } = await supabase.from('empresas').select('*').eq('id', empresaId).single();
 
+        if (!empresa) {
+            console.error(`[Bot ${botData.nome}] Empresa não encontrada: ${empresaId}`);
+            return bot.sendMessage(chatId, "❌ Erro: Empresa não encontrada no sistema. Tente reiniciar com /start.");
+        }
+
         // 3. Renderiza Texto
         const botDataWithSelectedCompany = {
             ...botData,
