@@ -259,13 +259,23 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     console.log(`[PDFGen] Carimbo 2 inserido em X=${targetX}, Y=${posY}`);
                 }
 
-                // Ajusta posY para a linha final ficar abaixo dos carimbos
+                // Ajusta posY para a linha final ficar abaixo dos carimbos (com comportamento normal)
                 posY = posY + carimboHeight;
             } // Fim do else (Modo Clássico)
 
 
+            // --- FORÇAR RODAPÉ NA MESMA PÁGINA (NUCLEAR) ---
+            // Se posY passou do limite da página, CLAMPA ele para o finalzinho
+            const maxPageY = doc.page.height - 40;
+            if (posY > maxPageY) {
+                console.log(`[PDFGen] PosY (${posY}) passou do limite (${maxPageY}). Forçando rodapé.`);
+                posY = maxPageY;
+                // Se o cursor do texto também passou, volta
+                if (doc.y > maxPageY) doc.y = maxPageY - 10;
+            }
+
             // Linha final decorativa
-            const lineY = posY + 10;
+            const lineY = posY + 5; // Margem mínima
             doc.strokeColor('#dddddd').lineWidth(0.5)
                 .moveTo(margin, lineY)
                 .lineTo(pageWidth - margin, lineY)
