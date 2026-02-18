@@ -104,48 +104,50 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 const parts = text.split(/({{CARIMBO_[12]}})/g);
 
                 for (const part of parts) {
-                    // Configuração Compacta (Reaplicar para garantir)
-                    if (compact) {
-                        doc.fontSize(8);
-                        doc.fillColor('black');
-                    } else {
-                        doc.fontSize(12);
-                    }
+                    // Configuração SUPER Compacta (Atacadão)
+                    const fontSizeUsed = compact ? 7 : 12; // Modificado para 7pt no modo compacto
+                    const lineGapUsed = compact ? -1.5 : 2;
+
+                    doc.fontSize(fontSizeUsed);
+                    doc.fillColor('black');
 
                     if (part === '{{CARIMBO_1}}') {
                         if (carimbo1Buffer) {
                             const currentY = doc.y;
                             // Se não couber na página, cria nova
-                            if (currentY + 100 > doc.page.height - marginVal) {
+                            if (currentY + 70 > doc.page.height - marginVal) { // Reduzido threshold
                                 doc.addPage();
-                                if (compact) doc.fontSize(8);
+                                doc.fontSize(fontSizeUsed);
                             }
 
-                            // Centraliza o carimbo na largura da página (opcional, mas fica melhor)
-                            const xPos = (doc.page.width - 150) / 2;
-                            doc.image(carimbo1Buffer, xPos, doc.y, { width: 150 });
+                            // Centraliza o carimbo
+                            const xPos = (doc.page.width - 120) / 2; // Reduzido width visual
 
-                            // Avança o cursor Y EXATAMENTE a altura da imagem + padding
-                            // 90px (altura aprox) + 5px padding
-                            doc.y += 95;
+                            // Altura REDUZIDA para caber em uma página
+                            // Antes: ~90px. Agora: ~60px
+                            doc.image(carimbo1Buffer, xPos, doc.y, { width: 120, height: 60 });
 
-                            console.log(`[PDFGen] INLINE: Carimbo 1 inserido em Y=${doc.y}`);
+                            // Avança o cursor Y EXATAMENTE a altura da imagem + padding MÍNIMO
+                            // 60px (altura) + 5px padding
+                            doc.y += 65;
+
+                            console.log(`[PDFGen] INLINE: Carimbo 1 inserido em Y=${doc.y} (Compact Mode)`);
                             posY = doc.y;
                         }
                     } else if (part === '{{CARIMBO_2}}') {
                         if (carimbo2Buffer) {
                             const currentY = doc.y;
-                            if (currentY + 100 > doc.page.height - marginVal) {
+                            if (currentY + 70 > doc.page.height - marginVal) {
                                 doc.addPage();
-                                if (compact) doc.fontSize(8);
+                                doc.fontSize(fontSizeUsed);
                             }
 
-                            const xPos = (doc.page.width - 150) / 2;
-                            doc.image(carimbo2Buffer, xPos, doc.y, { width: 150 });
+                            const xPos = (doc.page.width - 120) / 2;
+                            doc.image(carimbo2Buffer, xPos, doc.y, { width: 120, height: 60 });
 
-                            doc.y += 95;
+                            doc.y += 65;
 
-                            console.log(`[PDFGen] INLINE: Carimbo 2 inserido em Y=${doc.y}`);
+                            console.log(`[PDFGen] INLINE: Carimbo 2 inserido em Y=${doc.y} (Compact Mode)`);
                             posY = doc.y;
                         }
                     } else {
@@ -155,7 +157,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                             if (!line) { // Linha vazia ou null
                                 if (compact) {
                                     // No modo compacto, reduz o pulo de linha vazia tb
-                                    doc.y += 2;
+                                    doc.y += 1.5;
                                 } else {
                                     doc.moveDown(0.5);
                                 }
@@ -163,21 +165,21 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                             }
 
                             if (line.trim() === '') {
-                                if (compact) doc.y += 2;
+                                if (compact) doc.y += 1.5;
                                 else doc.moveDown(0.5);
                                 continue;
                             }
 
                             if (line.trim().startsWith('#')) {
-                                doc.fontSize(compact ? 10 : 14).font('Helvetica-Bold')
+                                doc.fontSize(compact ? 9 : 14).font('Helvetica-Bold')
                                     .text(line.replace(/^#+\s*/, ''), { align: 'left' })
                                     .moveDown(0.2);
-                                doc.fontSize(compact ? 8 : 12).font('Helvetica');
+                                doc.fontSize(fontSizeUsed).font('Helvetica');
                                 continue;
                             }
 
                             // Força lineGap negativo no modo compacto
-                            doc.text(line, { align: 'justify', lineGap: lineGap });
+                            doc.text(line, { align: 'justify', lineGap: lineGapUsed });
                         }
                         // Atualiza posY após texto também
                         posY = doc.y;
