@@ -104,16 +104,32 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 const parts = text.split(/({{CARIMBO_[12]}})/g);
 
                 for (const part of parts) {
+                    // Configuração Compacta (Reaplicar para garantir)
+                    if (compact) {
+                        doc.fontSize(8);
+                        doc.fillColor('black');
+                    } else {
+                        doc.fontSize(12);
+                    }
+
                     if (part === '{{CARIMBO_1}}') {
                         if (carimbo1Buffer) {
                             const currentY = doc.y;
+                            // Se não couber na página, cria nova
                             if (currentY + 100 > doc.page.height - marginVal) {
                                 doc.addPage();
+                                if (compact) doc.fontSize(8);
                             }
-                            doc.image(carimbo1Buffer, doc.x, doc.y, { width: 150 });
-                            doc.moveDown(5);
+
+                            // Centraliza o carimbo na largura da página (opcional, mas fica melhor)
+                            const xPos = (doc.page.width - 150) / 2;
+                            doc.image(carimbo1Buffer, xPos, doc.y, { width: 150 });
+
+                            // Avança o cursor Y EXATAMENTE a altura da imagem + padding
+                            // 90px (altura aprox) + 5px padding
+                            doc.y += 95;
+
                             console.log(`[PDFGen] INLINE: Carimbo 1 inserido em Y=${doc.y}`);
-                            // Atualiza posY para a linha decorativa final ser após o último elemento
                             posY = doc.y;
                         }
                     } else if (part === '{{CARIMBO_2}}') {
@@ -121,9 +137,14 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                             const currentY = doc.y;
                             if (currentY + 100 > doc.page.height - marginVal) {
                                 doc.addPage();
+                                if (compact) doc.fontSize(8);
                             }
-                            doc.image(carimbo2Buffer, doc.x, doc.y, { width: 150 });
-                            doc.moveDown(5);
+
+                            const xPos = (doc.page.width - 150) / 2;
+                            doc.image(carimbo2Buffer, xPos, doc.y, { width: 150 });
+
+                            doc.y += 95;
+
                             console.log(`[PDFGen] INLINE: Carimbo 2 inserido em Y=${doc.y}`);
                             posY = doc.y;
                         }
@@ -131,17 +152,31 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                         // Renderiza o texto normal
                         const lines = part.split('\n');
                         for (const line of lines) {
-                            if (!line || line.trim() === '') {
-                                doc.moveDown(0.5);
+                            if (!line) { // Linha vazia ou null
+                                if (compact) {
+                                    // No modo compacto, reduz o pulo de linha vazia tb
+                                    doc.y += 2;
+                                } else {
+                                    doc.moveDown(0.5);
+                                }
                                 continue;
                             }
+
+                            if (line.trim() === '') {
+                                if (compact) doc.y += 2;
+                                else doc.moveDown(0.5);
+                                continue;
+                            }
+
                             if (line.trim().startsWith('#')) {
-                                doc.fontSize(14).font('Helvetica-Bold')
+                                doc.fontSize(compact ? 10 : 14).font('Helvetica-Bold')
                                     .text(line.replace(/^#+\s*/, ''), { align: 'left' })
-                                    .moveDown(0.5);
-                                doc.fontSize(12).font('Helvetica');
+                                    .moveDown(0.2);
+                                doc.fontSize(compact ? 8 : 12).font('Helvetica');
                                 continue;
                             }
+
+                            // Força lineGap negativo no modo compacto
                             doc.text(line, { align: 'justify', lineGap: lineGap });
                         }
                         // Atualiza posY após texto também
