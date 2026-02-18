@@ -90,25 +90,31 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             const hasInlineStamp2 = text.includes('{{CARIMBO_2}}');
             const hasAnyInline = hasInlineStamp1 || hasInlineStamp2;
 
+            // Variáveis comuns para o rodapé (definidas fora para evitar erro de escopo)
+            const carimboHeight = 90;
+            const carimboWidth = 170;
+            const margin = marginVal;
+            const pageWidth = doc.page.width;
+            let posY = doc.page.height - 180; // Valor padrão para uso posterior
+
             if (hasAnyInline) {
                 console.log(`[PDFGen] Modo INLINE detectado. Carimbo 1: ${hasInlineStamp1}, Carimbo 2: ${hasInlineStamp2}`);
 
                 // Regex para separar os tokens mantendo-os no array
-                // Ex: "texto...{{CARIMBO_1}}...texto" -> ["texto...", "{{CARIMBO_1}}", "...texto"]
                 const parts = text.split(/({{CARIMBO_[12]}})/g);
 
                 for (const part of parts) {
                     if (part === '{{CARIMBO_1}}') {
                         if (carimbo1Buffer) {
                             const currentY = doc.y;
-                            // Se não couber na página, cria nova
                             if (currentY + 100 > doc.page.height - marginVal) {
                                 doc.addPage();
                             }
                             doc.image(carimbo1Buffer, doc.x, doc.y, { width: 150 });
-                            // Avança o cursor Y para não escrever em cima da imagem
                             doc.moveDown(5);
                             console.log(`[PDFGen] INLINE: Carimbo 1 inserido em Y=${doc.y}`);
+                            // Atualiza posY para a linha decorativa final ser após o último elemento
+                            posY = doc.y;
                         }
                     } else if (part === '{{CARIMBO_2}}') {
                         if (carimbo2Buffer) {
@@ -119,6 +125,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                             doc.image(carimbo2Buffer, doc.x, doc.y, { width: 150 });
                             doc.moveDown(5);
                             console.log(`[PDFGen] INLINE: Carimbo 2 inserido em Y=${doc.y}`);
+                            posY = doc.y;
                         }
                     } else {
                         // Renderiza o texto normal
@@ -137,6 +144,8 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                             }
                             doc.text(line, { align: 'justify', lineGap: lineGap });
                         }
+                        // Atualiza posY após texto também
+                        posY = doc.y;
                     }
                 }
 
@@ -164,14 +173,10 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 }
 
                 // --- Gerenciamento de Carimbos (Rodapé) ---
-                const carimboHeight = 90;
-                const carimboWidth = 170;
-                const margin = marginVal;
-                const pageWidth = doc.page.width;
+                // Variáveis já definidas acima (carimboHeight, etc)
 
                 let posX1 = margin;
                 let posX2 = pageWidth - margin - carimboWidth;
-                let posY = doc.page.height - 180; // Padrão
 
                 // Sobrescrever se for personalizado
                 if (stampPosition === 'personalizado' && customCoords) {
@@ -216,11 +221,14 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     doc.image(carimbo2Buffer, targetX, posY, { fit: [carimboWidth, carimboHeight] });
                     console.log(`[PDFGen] Carimbo 2 inserido em X=${targetX}, Y=${posY}`);
                 }
+
+                // Ajusta posY para a linha final ficar abaixo dos carimbos
+                posY = posY + carimboHeight;
             } // Fim do else (Modo Clássico)
 
 
             // Linha final decorativa
-            const lineY = posY + carimboHeight + 10;
+            const lineY = posY + 10;
             doc.strokeColor('#dddddd').lineWidth(0.5)
                 .moveTo(margin, lineY)
                 .lineTo(pageWidth - margin, lineY)
