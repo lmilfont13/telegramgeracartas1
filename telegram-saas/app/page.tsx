@@ -39,10 +39,16 @@ export default async function Dashboard() {
                         <h1 className="text-4xl font-black tracking-tight text-gray-950">Controle SaaS</h1>
                         <p className="text-gray-500 mt-1 font-medium">Gestão centralizada de marcas, bots e modelos.</p>
                     </div>
-                    <div className="flex items-center gap-4 bg-white px-6 py-3 rounded-2xl border border-gray-100 shadow-sm">
-                        <div className="text-right">
-                            <p className="text-sm font-bold text-gray-900">{user.email}</p>
-                            <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest">Master Admin</p>
+                    <div className="flex items-center gap-4">
+                        <a href="/gerar-carta" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl font-bold shadow-lg shadow-blue-200 transition-all transform hover:scale-105">
+                            <Plus className="h-5 w-5" />
+                            Gerar Carta Manual
+                        </a>
+                        <div className="flex items-center gap-4 bg-white px-6 py-3 rounded-2xl border border-gray-100 shadow-sm">
+                            <div className="text-right">
+                                <p className="text-sm font-bold text-gray-900">{user.email}</p>
+                                <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest">Master Admin</p>
+                            </div>
                         </div>
                     </div>
                 </div>
