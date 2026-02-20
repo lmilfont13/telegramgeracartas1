@@ -194,6 +194,7 @@ function renderTemplate(template, funcionario, botData) {
         .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, '') // Remove controles não-imprimíveis
         .trim();
 
+    // 1. Mapeamento de placeholders HARDCODED (prioritários ou especiais)
     const placeholders = {
         '{{NOME}}': extractField(funcionario, 'nome'),
         '{{LOJA}}': botData.loja_selecionada || extractField(funcionario, 'loja'),
@@ -207,15 +208,26 @@ function renderTemplate(template, funcionario, botData) {
         '{{DATA_ATUAL}}': new Date().toLocaleDateString('pt-BR'),
         '{{DATA_ADMISSAO}}': funcionario.data_admissao ? new Date(funcionario.data_admissao).toLocaleDateString('pt-BR') : '-',
         '{{numero_carteira_trabalho}}': extractField(funcionario, 'carteira'),
-        '{{Serie}}': extractField(funcionario, 'serie'),
+        '{{serie}}': extractField(funcionario, 'serie'),
         '{{agencia}}': extractField(funcionario, 'agencia')
     };
+
+    // 2. Mapeamento DINÂMICO de todas as colunas da planilha (dados_extras)
+    if (funcionario.dados_extras) {
+        Object.entries(funcionario.dados_extras).forEach(([key, value]) => {
+            const placeholderKey = `{{${key.toUpperCase()}}}`;
+            // Só adiciona se não for um dos hardcoded acima (para não sobrescrever lógica especial)
+            if (!placeholders[placeholderKey]) {
+                placeholders[placeholderKey] = String(value || '');
+            }
+        });
+    }
 
     console.log(`[Bot ${botData.nome}] Valores dos Placeholders:`, JSON.stringify(placeholders, null, 2));
 
     for (const [key, value] of Object.entries(placeholders)) {
-        // Remove as chaves para criar a regex e torná-la case-insensitive
-        const pattern = key.replace('{{', '\\{\\{').replace('}}', '\\}\\}');
+        // Escapa caracteres especiais da regex e torna case-insensitive
+        const pattern = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         text = text.replace(new RegExp(pattern, 'gi'), value || '');
     }
     return text;

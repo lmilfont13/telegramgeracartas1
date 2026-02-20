@@ -34,6 +34,21 @@ export default async function BotPage({ params }: { params: Promise<{ id: string
     const { data: template } = await supabase.from('templates').select('*').eq('empresa_id', bot.empresa_id).maybeSingle();
     const templateTexto = template ? template.conteudo : "Olá {{NOME}}, seu pedido na {{LOJA}} foi processado em {{DATA}}.";
 
+    // Buscar chaves disponíveis (placeholders) do último funcionário importado
+    const { data: ultimoFuncionario } = await supabase
+        .from('funcionarios')
+        .select('dados_extras')
+        .eq('empresa_id', bot.empresa_id)
+        .order('criado_em', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    const availablePlaceholders = ultimoFuncionario?.dados_extras
+        ? Object.keys(ultimoFuncionario.dados_extras).filter(k =>
+            !['nome', 'loja', 'cargo', 'rg', 'cpf', 'data', 'cdc', 'data_admissao', 'agencia', 'serie', 'carteira', 'numero_carteira_trabalho'].includes(k.toLowerCase())
+        )
+        : [];
+
     // Ação específica para o TemplateEditor (passada como prop)
     async function handleSaveTemplate(fd: FormData) {
         'use server'
@@ -125,11 +140,11 @@ export default async function BotPage({ params }: { params: Promise<{ id: string
                         buttonColor="bg-purple-600"
                     />
 
-
                     {/* Template da Carta */}
                     <TemplateEditor
                         botId={bot.id}
                         initialTemplate={templateTexto}
+                        availablePlaceholders={availablePlaceholders}
                         action={handleSaveTemplate}
                     />
 

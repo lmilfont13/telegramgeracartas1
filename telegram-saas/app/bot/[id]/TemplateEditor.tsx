@@ -5,13 +5,19 @@ import { useState } from 'react'
 interface TemplateEditorProps {
     botId: string
     initialTemplate: string
+    availablePlaceholders?: string[]
     action: (formData: FormData) => Promise<{ success?: string, error?: string }>
 }
 
-export default function TemplateEditor({ botId, initialTemplate, action }: TemplateEditorProps) {
+export default function TemplateEditor({ botId, initialTemplate, availablePlaceholders = [], action }: TemplateEditorProps) {
     const [template, setTemplate] = useState(initialTemplate)
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+
+    const insertPlaceholder = (ph: string) => {
+        const textToInsert = `{{${ph.toUpperCase()}}}`
+        setTemplate(prev => prev + textToInsert)
+    }
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -39,9 +45,23 @@ export default function TemplateEditor({ botId, initialTemplate, action }: Templ
     return (
         <div className="rounded-lg border bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold mb-4">Modelo da Carta</h2>
-            <p className="text-sm text-gray-500 mb-2">
-                Use <code>{`{{NOME}}`}</code>, <code>{`{{DATA}}`}</code>, <code>{`{{LOJA}}`}</code> como variáveis.
-            </p>
+
+            <div className="mb-6">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Variáveis Disponíveis (Clique para inserir)</p>
+                <div className="flex flex-wrap gap-1.5">
+                    {['nome', 'loja', 'cargo', 'rg', 'cpf', 'data', 'cdc', 'data_admissao', ...availablePlaceholders].map((ph) => (
+                        <button
+                            key={ph}
+                            type="button"
+                            onClick={() => insertPlaceholder(ph)}
+                            className="px-2 py-1 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-200 rounded-md text-[10px] font-bold text-gray-500 hover:text-blue-600 transition-all"
+                        >
+                            {`{{${ph.toUpperCase()}}}`}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             <form onSubmit={handleSubmit}>
                 <textarea
                     name="template"
