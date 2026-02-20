@@ -48,7 +48,6 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
 
             // --- 1. PREPARAÇÃO DO TEXTO E RODAPÉ ---
             let footerText = "";
-            // Regex flexível para limpar negritos em volta de carimbos
             let cleanText = text
                 .replace(/\*\*\{\{\s*CARIMBO_[12]\s*\}\}\*\*/gi, (m) => m.replace(/\*\*/g, ''))
                 .trim();
@@ -57,11 +56,10 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             const bodyLines = [];
             for (let i = 0; i < rawLines.length; i++) {
                 const line = rawLines[i].trim();
-                // Identifica o rodapé de endereço
                 if (line.match(/(Rua Demóstenes|CEP 04614-013|São Paulo - SP|Terceirização|POP TRADE)/i) && i > rawLines.length - 8) {
                     footerText = line;
                 } else {
-                    bodyLines.push(rawLines[i]);
+                    bodyLines.push(rawLines[i]); // Mantemos a linha original (com espaços iniciais se houver)
                 }
             }
 
@@ -92,12 +90,10 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 return h;
             };
 
-            // Base settings
             let fontSize = 11.5;
             let lineGap = 1.5;
             let totalH = estimateHeight(fontSize, lineGap);
 
-            // A. DOWNWARD SCALING
             while (totalH + minStampsSpace > availableHeight && fontSize > 7.5) {
                 fontSize -= 0.5;
                 lineGap -= 0.3;
@@ -105,7 +101,6 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 totalH = estimateHeight(fontSize, lineGap);
             }
 
-            // B. UPWARD SCALING (Preencher mais a página)
             if (totalH + minStampsSpace < (availableHeight * 0.70)) {
                 while (totalH + minStampsSpace < (availableHeight * 0.88) && fontSize < 14.5) {
                     fontSize += 0.25;
@@ -132,8 +127,9 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             let renderedCar2 = false;
 
             bodyLines.forEach(line => {
+                const untrimmed = line;
                 const trimmed = line.trim();
-                const hasStamp = trimmed.match(/\{\{\s*(CARIMBO_[12])\s*\}\}/i);
+                const hasStamp = untrimmed.match(/\{\{\s*(CARIMBO_[12])\s*\}\}/i);
 
                 if (trimmed === '') {
                     doc.moveDown(0.5);
@@ -142,27 +138,36 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
 
                 const currentY = doc.y;
 
-                // Renderização de Carimbos
                 if (hasStamp) {
                     const regex = /\{\{\s*(CARIMBO_[12])\s*\}\}/gi;
                     let match;
                     let matches = [];
-                    while ((match = regex.exec(trimmed)) !== null) {
+                    while ((match = regex.exec(untrimmed)) !== null) {
                         matches.push({ key: match[1].toUpperCase(), index: match.index });
                     }
-                    matches.sort((a, b) => a.index - b.index);
 
-                    matches.forEach((m, i) => {
+                    matches.forEach((m) => {
                         const buffer = m.key === 'CARIMBO_1' ? carimbo1Buffer : carimbo2Buffer;
                         if (!buffer) return;
-                        const targetX = (i === 0) ? mH : (pageWidth - mH - carWidth);
+
+                        // Lógica de Posicionamento Horizontal REAL baseada no index
+                        let targetX = mH; // Default: Esquerda
+                        const lineLen = untrimmed.length;
+                        const posPercent = m.index / lineLen;
+
+                        if (posPercent > 0.6) {
+                            targetX = pageWidth - mH - carWidth; // Direita
+                        } else if (posPercent > 0.3) {
+                            targetX = (pageWidth / 2) - (carWidth / 2); // Centro
+                        }
+
                         doc.image(buffer, targetX, currentY, { fit: [carWidth, carHeight] });
+
                         if (m.key === 'CARIMBO_1') renderedCar1 = true;
                         if (m.key === 'CARIMBO_2') renderedCar2 = true;
                     });
                 }
 
-                // Títulos (#)
                 if (trimmed.startsWith('#')) {
                     doc.font('Helvetica-Bold').fontSize(fontSize + 1.5)
                         .text(trimmed.replace(/^#+\s*/, ''), { align: 'left' })
@@ -172,25 +177,20 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 }
 
                 const isHeading = trimmed.match(/^(AS LOJA|A\/C\.:|Ref\.:|Atenciosamente,)/i);
-
-                // Se o texto for curto demais, não Justifica (evita gaps feios)
-                const shouldJustify = !isHeading && trimmed.length > 50;
-
+                const shouldJustify = !isHeading && trimmed.length > 55;
                 const options = {
                     align: shouldJustify ? 'justify' : 'left',
-                    indent: (!isHeading && trimmed.length > 50) ? 35 : 0,
+                    indent: (!isHeading && trimmed.length > 55) ? 35 : 0,
                     lineGap: lineGap
                 };
 
-                // Remove placeholders do texto para não aparecerem "escritos"
-                let textToRender = line.replace(/\{\{\s*CARIMBO_[12]\s*\}\}/gi, '');
+                let textToRender = untrimmed.replace(/\{\{\s*CARIMBO_[12]\s*\}\}/gi, '');
 
                 if (textToRender.trim() === '' && hasStamp) {
                     doc.y += carHeight + 15;
                     return;
                 }
 
-                // Inline Bold
                 const parts = textToRender.split(/(\*\*.*?\*\*)/g);
                 if (isHeading) doc.font('Helvetica-Bold');
 
@@ -213,10 +213,8 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 }
             });
 
-            // Enforce Page 1
             if (doc.bufferedPageCount > 1) doc.switchToPage(0);
 
-            // Fallback Carimbos
             if ((!renderedCar1 && carimbo1Buffer) || (!renderedCar2 && carimbo2Buffer)) {
                 let finalY = Math.max(doc.y + 25, footerY - carHeight - 20);
                 if (!renderedCar1 && carimbo1Buffer) {
@@ -227,7 +225,6 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 }
             }
 
-            // Rodapé Final
             if (footerText) {
                 doc.fontSize(8.5).fillColor('gray').font('Helvetica');
                 doc.text(footerText, mH, footerY, {
@@ -235,6 +232,9 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     width: pageWidth - (mH * 2)
                 });
             }
+
+            // Version Indicator (Very small, bottom left)
+            doc.fontSize(4).fillColor('#eeeeee').text(`v3.1-${new Date().toISOString()}`, 10, pageHeight - 10);
 
             doc.end();
         } catch (error) {
