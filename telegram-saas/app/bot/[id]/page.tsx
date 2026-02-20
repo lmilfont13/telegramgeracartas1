@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { updateBot, updateToken } from "./actions";
 import ImageUpload from "./ImageUpload";
 import TemplateEditor from "./TemplateEditor";
+import EmployeeUploadInteractive from "./EmployeeUploadInteractive";
 import { uploadLogo, uploadCarimbo, uploadCarimboFuncionario } from "./upload-images";
 
 export default async function BotPage({ params }: { params: Promise<{ id: string }> }) {
@@ -32,11 +33,6 @@ export default async function BotPage({ params }: { params: Promise<{ id: string
     // Buscar template
     const { data: template } = await supabase.from('templates').select('*').eq('empresa_id', bot.empresa_id).maybeSingle();
     const templateTexto = template ? template.conteudo : "Olá {{NOME}}, seu pedido na {{LOJA}} foi processado em {{DATA}}.";
-
-    async function handleUploadEmployees(fd: FormData) {
-        'use server'
-        await uploadEmployees(fd)
-    }
 
     // Ação específica para o TemplateEditor (passada como prop)
     async function handleSaveTemplate(fd: FormData) {
@@ -139,16 +135,15 @@ export default async function BotPage({ params }: { params: Promise<{ id: string
 
                     {/* Importação de Funcionários */}
                     <div className="rounded-lg border bg-white p-6 shadow-sm">
-                        <h2 className="text-lg font-semibold mb-4">Base de Funcionários</h2>
-                        <p className="text-sm text-gray-500 mb-4">
-                            Importe uma planilha (Excel ou CSV) com os dados dos funcionários. <br />
-                            Colunas esperadas: <strong>Nome, Loja, Data Admissão, Cargo</strong>.
+                        <h2 className="text-lg font-semibold mb-3">Base de Funcionários</h2>
+                        <p className="text-sm text-gray-400 mb-6 font-medium leading-relaxed">
+                            Importe os funcionários para esta marca. Você poderá mapear as colunas da sua planilha manualmente.
                         </p>
 
-                        <UploadForm botId={bot.id} action={handleUploadEmployees} />
+                        <EmployeeUploadInteractive botId={bot.id} />
 
-                        <div className="mt-6">
-                            <h3 className="text-sm font-medium text-gray-900 mb-2">Últimos Importados</h3>
+                        <div className="mt-8">
+                            <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Últimos Importados</h3>
                             <EmployeeList botId={bot.id} />
                         </div>
                     </div>
@@ -159,28 +154,6 @@ export default async function BotPage({ params }: { params: Promise<{ id: string
     );
 }
 
-import { uploadEmployees } from "./upload-employees";
-
-function UploadForm({ botId, action }: { botId: string, action: (fd: FormData) => Promise<void> }) {
-    return (
-        <form action={action} className="flex gap-4 items-end">
-            <input type="hidden" name="bot_id" value={botId} />
-            <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Arquivo (XLSX, CSV)</label>
-                <input
-                    type="file"
-                    name="file"
-                    accept=".xlsx,.xls,.csv"
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:rounded-full file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
-                    required
-                />
-            </div>
-            <button className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 mb-[2px]">
-                Importar
-            </button>
-        </form>
-    )
-}
 
 async function EmployeeList({ botId }: { botId: string }) {
     const supabase = await createClient();

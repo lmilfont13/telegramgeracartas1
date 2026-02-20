@@ -102,9 +102,9 @@ function extractField(funcionario, type) {
 
     const mapping = {
         nome: {
-            keys: ['nome', 'funcionario', 'colaborador', 'completo', 'funcionarios'],
+            keys: ['nome', 'funcionario', 'candidato', 'promotor', 'colaborador', 'completo', 'funcionarios'],
             blacklist: ['cpf', 'rg', 'id', 'cod', 'conta', 'nascimento', 'data', 'inicio', 'admissao'],
-            valueCheck: (v) => v && v.length > 3 && !/^\d{7,}$/.test(v.replace(/[\.\-\/]/g, '')) && v.includes(' ')
+            valueCheck: (v) => v && v.length > 3 && !/^\d{7,}$/.test(v.replace(/[\.\-\/]/g, ''))
         },
         loja: {
             keys: ['loja', 'unidade', 'filial', 'ponto', 'pdv', 'local', 'cidade', 'estado', 'uf', 'cdc'],
@@ -117,7 +117,7 @@ function extractField(funcionario, type) {
             valueCheck: (v) => v && v.length >= 2
         },
         rg: {
-            keys: ['rg', 'identidade'],
+            keys: ['rg', 'identidade', 'reg', 'registro'],
             blacklist: [],
             valueCheck: (v) => v && v.length >= 5
         },

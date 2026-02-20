@@ -12,6 +12,16 @@ export async function uploadEmployees(formData: FormData) {
 
     const botId = formData.get('bot_id') as string
     const file = formData.get('file') as File
+    const mappingJson = formData.get('mapping') as string // Novo: JSON com o mapeamento
+
+    let customMapping: Record<string, string> | null = null;
+    if (mappingJson) {
+        try {
+            customMapping = JSON.parse(mappingJson);
+        } catch (e) {
+            console.error("Erro ao parsear mapeamento:", e);
+        }
+    }
 
     if (!file) {
         return { error: 'Nenhum arquivo enviado.' }
@@ -42,36 +52,62 @@ export async function uploadEmployees(formData: FormData) {
             const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
             const keys = Object.keys(row).reduce((acc, key) => {
-                acc[normalize(key)] = row[key];
+                let value = row[key];
+
+                // Tratar notação científica ou números que devem ser strings (RG/CPF)
+                if (typeof value === 'number') {
+                    // Se for um número muito grande (provavelmente RG ou CPF), converte para string sem notação científica
+                    if (value > 1000000) {
+                        value = value.toLocaleString('fullwide', { useGrouping: false });
+                    } else {
+                        value = String(value);
+                    }
+                }
+
+                acc[normalize(key)] = value;
                 return acc;
             }, {} as any);
 
-            // Tenta encontrar campos com vários sinônimos
-            const nome = keys['nome'] || keys['funcionario'] || keys['colaborador'] || keys['nome do funcionario'] || keys['nome completo'] || Object.values(row)[0] || 'Sem Nome';
-            const loja = keys['loja'] || keys['unidade'] || keys['filial'] || keys['ponto de venda'] || keys['pdv'] || '';
-            const cargo = keys['cargo'] || keys['funcao'] || keys['ocupacao'] || '';
+            // Mapeamento de campos
+            let nome, loja, cargo, dataAdmissaoRaw;
 
-            // Data
+            if (customMapping) {
+                // Usa o mapeamento manual do usuário
+                nome = row[customMapping['nome']] || 'Sem Nome';
+                loja = row[customMapping['loja']] || '';
+                cargo = row[customMapping['cargo']] || '';
+                dataAdmissaoRaw = row[customMapping['data_admissao']];
+            } else {
+                // Fallback para mapeamento automático fuzzy
+                nome = keys['nome'] || keys['funcionario'] || keys['candidato'] || keys['promotor'] || keys['colaborador'] || keys['nome do funcionario'] || keys['nome completo'] || 'Sem Nome';
+                loja = keys['loja'] || keys['unidade'] || keys['filial'] || keys['ponto de venda'] || keys['pdv'] || '';
+                cargo = keys['cargo'] || keys['funcao'] || keys['ocupacao'] || '';
+                dataAdmissaoRaw = keys['data'] || keys['admissao'] || keys['data admissao'] || keys['data de admissao'] || keys['inicio'] || keys['data de inicio'];
+            }
+
+            // Converter Data
             let dataAdmissao = null;
-            let rawData = keys['data'] || keys['admissao'] || keys['data admissao'] || keys['data de admissao'] || keys['inicio'];
-
-            if (rawData) {
-                if (typeof rawData === 'number') {
+            if (dataAdmissaoRaw) {
+                if (typeof dataAdmissaoRaw === 'number') {
                     // Converter serial excel para Date JS
                     // (Excel serial date starts from 1900-01-01)
                     // Aproximação simples:
-                    const date = new Date((rawData - 25569) * 86400 * 1000);
+                    const date = new Date((dataAdmissaoRaw - 25569) * 86400 * 1000);
                     dataAdmissao = date.toISOString().split('T')[0];
                 } else {
                     // Tenta parsear string PT-BR (DD/MM/YYYY)
-                    if (typeof rawData === 'string' && rawData.includes('/')) {
-                        const parts = rawData.split('/');
+                    if (typeof dataAdmissaoRaw === 'string' && dataAdmissaoRaw.includes('/')) {
+                        const parts = dataAdmissaoRaw.split('/');
                         if (parts.length === 3) {
                             dataAdmissao = `${parts[2]}-${parts[1]}-${parts[0]}`;
                         }
                     } else {
                         // Tenta ISO direto
-                        dataAdmissao = new Date(rawData).toISOString().split('T')[0];
+                        try {
+                            dataAdmissao = new Date(dataAdmissaoRaw).toISOString().split('T')[0];
+                        } catch (e) {
+                            console.error("Erro data:", e);
+                        }
                     }
                 }
             }
