@@ -3,13 +3,10 @@ const axios = require('axios');
 
 /**
  * Downloads an image from a URL and returns as a Buffer
- * @param {string} url 
- * @returns {Promise<Buffer|null>}
  */
 async function downloadImage(urlOrBuffer) {
     if (!urlOrBuffer) return null;
     if (Buffer.isBuffer(urlOrBuffer)) return urlOrBuffer;
-
     try {
         const response = await axios.get(urlOrBuffer, { responseType: 'arraybuffer' });
         return Buffer.from(response.data);
@@ -20,22 +17,24 @@ async function downloadImage(urlOrBuffer) {
 }
 
 /**
- * Gera um PDF profissional a partir do texto da carta e imagens (URLs ou Buffers)
+ * Gera um PDF profissional a partir do texto da carta e imagens
  */
 async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampPosition = 'ambos', customCoords = null, compact = false }) {
     const logoBuffer = await downloadImage(logoUrl);
     const carimbo1Buffer = await downloadImage(carimbo1Url);
     const carimbo2Buffer = await downloadImage(carimbo2Url);
 
-    const marginVal = compact ? 25 : 72;
-    const fontSizeBody = compact ? 8 : 12;
-    const startY = compact ? 60 : 140;
+    // Ajuste de margens para garantir que caiba em uma página
+    const marginV = compact ? 20 : 60;
+    const marginH = compact ? 25 : 72;
+    const fontSizeBody = compact ? 9.5 : 12; // Aumentado um pouco para legibilidade
+    const startY = compact ? 80 : 140;
 
     return new Promise((resolve, reject) => {
         try {
             const doc = new PDFDocument({
                 size: 'A4',
-                margins: { top: marginVal, bottom: marginVal, left: marginVal, right: marginVal },
+                margins: { top: marginV, bottom: marginV, left: marginH, right: marginH },
                 bufferPages: true
             });
 
@@ -44,142 +43,129 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             doc.on('end', () => resolve(Buffer.concat(chunks)));
             doc.on('error', reject);
 
-            // Logo - Left Aligned
+            // --- CABEÇALHO (LOGO E DATA) ---
             if (logoBuffer) {
                 try {
-                    doc.image(logoBuffer, marginVal, 35, { width: 130 });
-                } catch (e) {
-                    console.error(`[PDFGen] Erro ao inserir logo:`, e.message);
-                }
+                    doc.image(logoBuffer, marginH, 30, { width: 120 });
+                } catch (e) { console.error(e); }
             }
 
-            // Data - Right Aligned
             const months = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
             const now = new Date();
             const dateStr = `Data de emissão: ${now.getDate()} DE ${months[now.getMonth()]} DE ${now.getFullYear()}`;
 
-            doc.save();
             doc.font('Helvetica-Bold').fontSize(9).fillColor('black');
-            doc.text(dateStr, marginVal, 60, { align: 'right' });
-            doc.restore();
+            doc.text(dateStr, marginH, 50, { align: 'right' });
 
-            doc.x = marginVal;
             doc.y = startY;
+            doc.font('Helvetica').fontSize(fontSizeBody).fillColor('black');
 
-            /**
-             * Renders rich text with bold support and justification
-             */
-            const renderRichText = (line, options = {}) => {
+            // --- PROCESSAMENTO DO TEXTO ---
+            // Divide o texto mas preserva os parágrafos para a justificação
+            const rawLines = text.split('\n');
+            let footerCandidate = "";
+
+            // Filtra o rodapé (última linha que parece endereço)
+            const bodyLines = [];
+            for (let i = 0; i < rawLines.length; i++) {
+                const line = rawLines[i].trim();
+                // Se a linha for o endereço (Rua Demostenes etc), salva para o footer
+                if (line.match(/(Rua Demóstenes|CEP 04614-013|São Paulo - SP)/i)) {
+                    footerCandidate = line;
+                } else {
+                    bodyLines.push(rawLines[i]);
+                }
+            }
+
+            // Renderização das linhas do corpo
+            for (let line of bodyLines) {
+                if (line.trim() === '') {
+                    doc.moveDown(0.5);
+                    continue;
+                }
+
+                // Header automático (#)
+                if (line.trim().startsWith('#')) {
+                    doc.font('Helvetica-Bold').fontSize(fontSizeBody + 2)
+                        .text(line.replace(/^#+\s*/, ''), { align: 'left' })
+                        .moveDown(0.2);
+                    doc.font('Helvetica').fontSize(fontSizeBody);
+                    continue;
+                }
+
+                // Opções de texto (Justificado e Indentado)
+                const options = {
+                    align: 'justify',
+                    indent: (line.length > 40 && !line.includes(':')) ? 35 : 0,
+                    lineGap: compact ? -1 : 1.5
+                };
+
+                // Suporte a Negrito Inline (**texto**)
                 const parts = line.split(/(\*\*.*?\*\*)/g);
+
+                // Bold automático para linhas de cabeçalho comuns
                 if (line.match(/^(AS LOJA|A\/C\.:|Ref\.:|Atenciosamente,)/i)) {
                     doc.font('Helvetica-Bold');
                 }
 
                 parts.forEach((part, index) => {
                     const isLast = index === parts.length - 1;
-                    const combinedOptions = { ...options, continued: !isLast };
+                    const textOptions = { ...options, continued: !isLast };
 
                     if (part.startsWith('**') && part.endsWith('**')) {
-                        const content = part.slice(2, -2);
-                        doc.font('Helvetica-Bold').text(content, combinedOptions);
+                        doc.font('Helvetica-Bold').text(part.slice(2, -2), textOptions);
                     } else if (part !== '' || isLast) {
-                        doc.font('Helvetica').text(part, combinedOptions);
+                        doc.font('Helvetica').text(part, textOptions);
                     }
                 });
-                doc.font('Helvetica');
-            };
 
-            const lines = text.split('\n');
-            let hasInlineStamps = false;
-            let footerLines = [];
-
-            // Detect and separate footer
-            const bodyLines = [];
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                if (line.match(/(Rua|CEP|Campo Belo|São Paulo - SP|Terceirização|Merchandising)/i) && i > lines.length - 8) {
-                    footerLines.push(line.trim());
-                } else {
-                    bodyLines.push(line);
-                }
-            }
-
-            doc.fontSize(fontSizeBody);
-            for (let line of bodyLines) {
-                if (!line || line.trim() === '') {
-                    doc.moveDown(0.4);
-                    continue;
-                }
-
-                // Header lines (#)
-                if (line.trim().startsWith('#')) {
-                    doc.fontSize(compact ? 10 : 14).font('Helvetica-Bold')
-                        .text(line.replace(/^#+\s*/, ''), { align: 'left' })
-                        .moveDown(0.2);
-                    doc.fontSize(fontSizeBody).font('Helvetica');
-                    continue;
-                }
-
-                // Inline Stamps
-                let extraY = 0;
+                // Detecção de Carimbos Inseridos no Texto
                 if (line.includes('{{CARIMBO_1}}') || line.includes('{{CARIMBO_2}}')) {
-                    hasInlineStamps = true;
-                    if (line.includes('{{CARIMBO_1}}') && carimbo1Buffer) {
-                        const prefixWidth = doc.widthOfString(line.substring(0, line.indexOf('{{CARIMBO_1}}')).replace(/\*\*/g, ''));
-                        doc.image(carimbo1Buffer, marginVal + prefixWidth, doc.y - 12, { width: 120, height: 60 });
-                        line = line.replace('{{CARIMBO_1}}', '          ');
-                        extraY = 40;
-                    }
-                    if (line.includes('{{CARIMBO_2}}') && carimbo2Buffer) {
-                        const prefixWidth = doc.widthOfString(line.substring(0, line.indexOf('{{CARIMBO_2}}')).replace(/\*\*/g, ''));
-                        doc.image(carimbo2Buffer, marginVal + prefixWidth, doc.y - 12, { width: 120, height: 60 });
-                        line = line.replace('{{CARIMBO_2}}', '          ');
-                        extraY = 40;
-                    }
-                }
-
-                const options = {
-                    align: 'justify',
-                    indent: (line.length > 50 && !line.includes(':')) ? 30 : 0,
-                    lineGap: compact ? -1.5 : 1
-                };
-
-                renderRichText(line, options);
-                if (extraY > 0) doc.y += extraY;
-            }
-
-            // Stamps at bottom
-            if (!hasInlineStamps) {
-                let posY = doc.y + 20;
-                const carHeight = 85;
-                const carWidth = 160;
-                if (posY > doc.page.height - 180) {
-                    const diff = posY - (doc.page.height - 180);
-                    if (diff < 30) posY -= (diff + 5); else { doc.addPage(); posY = marginVal; }
-                }
-                if (carimbo1Buffer && (stampPosition === 'ambos' || stampPosition === 'esquerda')) {
-                    doc.image(carimbo1Buffer, marginVal, posY, { fit: [carWidth, carHeight] });
-                }
-                if (carimbo2Buffer && (stampPosition === 'ambos' || stampPosition === 'direita')) {
-                    const tx = stampPosition === 'direita' ? (doc.page.width - marginVal - carWidth) : (doc.page.width - marginVal - carWidth);
-                    doc.image(carimbo2Buffer, tx, posY, { fit: [carWidth, carHeight] });
+                    // Se houver placeholders de carimbo na linha, o doc.y já avançou
+                    // Precisamos garantir espaço para eles se não renderizados ainda
+                    doc.moveDown(4);
                 }
             }
 
-            // Footer Address on first page
-            if (footerLines.length > 0) {
-                const cur = doc.bufferedPageCount - 1;
-                doc.switchToPage(0);
-                doc.fontSize(8).font('Helvetica').fillColor('gray')
-                    .text(footerLines.join(' – '), marginVal, doc.page.height - 60, {
-                        align: 'center', width: doc.page.width - (marginVal * 2)
-                    });
-                doc.switchToPage(cur);
+            // --- CARIMBOS NO FINAL ---
+            let posY = doc.y + 20;
+            const carWidth = 160;
+            const carHeight = 80;
+
+            // Garante que carimbos caibam na página ou cria nova
+            if (posY > doc.page.height - 180) {
+                // Se estiver quase no fim, espreme um pouco
+                if (posY > doc.page.height - 120) {
+                    doc.addPage();
+                    posY = marginV + 20;
+                }
+            }
+
+            if (carimbo1Buffer && (stampPosition === 'esquerda' || stampPosition === 'ambos')) {
+                doc.image(carimbo1Buffer, marginH, posY, { fit: [carWidth, carHeight] });
+            }
+            if (carimbo2Buffer && (stampPosition === 'direita' || stampPosition === 'ambos')) {
+                const targetX = doc.page.width - marginH - carWidth;
+                doc.image(carimbo2Buffer, targetX, posY, { fit: [carWidth, carHeight] });
+            }
+
+            // --- RODAPÉ FIXO (ENDEREÇO) ---
+            if (footerCandidate) {
+                const totalPages = doc.bufferedPageCount;
+                doc.switchToPage(0); // Sempre na primeira página
+
+                doc.fontSize(8).fillColor('gray').font('Helvetica');
+                doc.text(footerCandidate, marginH, doc.page.height - 50, {
+                    align: 'center',
+                    width: doc.page.width - (marginH * 2)
+                });
+
+                doc.switchToPage(totalPages - 1);
             }
 
             doc.end();
         } catch (error) {
-            console.error('[PDFGen] Fatal Error:', error);
+            console.error('[PDFGen] Erro Fatal:', error);
             reject(error);
         }
     });
