@@ -481,32 +481,10 @@ function startBot(botData) {
             // 2. Seleção de Template (Agora é o SEGUNDO passo)
             if (type === 't') {
                 state.data.templateId = value;
-                state.step = STEPS.SELECTING_POSITION;
-
-                const buttons = [
-                    [{ text: '↔️ Ambos', callback_data: 'p:ambos' }],
-                    [{ text: '📍 Personalizado (X/Y)', callback_data: 'p:personalizado' }]
-                ];
-
-                return bot.editMessageText("Onde deseja posicionar os **Carimbos**?", {
-                    chat_id: chatId,
-                    message_id: query.message.message_id,
-                    reply_markup: { inline_keyboard: buttons }
-                });
-            }
-
-            // 3. Seleção de Posição
-            if (type === 'p') {
-                if (value === 'personalizado') {
-                    state.step = STEPS.AWAITING_CUSTOM_X;
-                    bot.answerCallbackQuery(query.id);
-                    return bot.sendMessage(chatId, "Digite a **largura (X)** desejada:\n\n_Referência Padrão: 72 (Margem Esquerda)_");
-                } else {
-                    state.data.stampPosition = value;
-                    state.data.customCoords = null;
-                    bot.answerCallbackQuery(query.id);
-                    return generateAndSendPDF(bot, chatId, state.data, botData);
-                }
+                state.data.stampPosition = 'ambos';
+                state.data.customCoords = null;
+                bot.answerCallbackQuery(query.id);
+                return generateAndSendPDF(bot, chatId, state.data, botData);
             }
         });
 
