@@ -18,34 +18,20 @@ async function downloadImage(urlOrBuffer) {
 
 /**
  * Gera um PDF profissional a partir do texto da carta e imagens.
- * Focado em manter TUDO em uma única página (A4).
+ * ABSOLUTAMENTE focado em UMA ÚNICA PÁGINA.
  */
 async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampPosition = 'ambos', customCoords = null, compact = false }) {
     const logoBuffer = await downloadImage(logoUrl);
     const carimbo1Buffer = await downloadImage(carimbo1Url);
     const carimbo2Buffer = await downloadImage(carimbo2Url);
 
-    // Configurações de layout agressivas para página única
-    const marginH = 65; // Margens laterais fixas
-    const marginV = 35; // Margem superior/inferior reduzida
-    let fontSizeBody = 11.5; // Fonte base
-    let lineGap = 1.2;
-
-    // Se o texto for muito longo, reduzimos automaticamente para caber
-    const charCount = text.length;
-    if (charCount > 2200) {
-        fontSizeBody = 10;
-        lineGap = 0.5;
-    } else if (charCount > 1800) {
-        fontSizeBody = 11;
-        lineGap = 0.8;
-    }
-
     return new Promise((resolve, reject) => {
         try {
+            // Criamos o documento com buffer de páginas para poder voltar se necessário,
+            // mas o objetivo é nunca criar a segunda página.
             const doc = new PDFDocument({
                 size: 'A4',
-                margins: { top: marginV, bottom: marginV, left: marginH, right: marginH },
+                margins: { top: 30, bottom: 30, left: 60, right: 60 },
                 bufferPages: true
             });
 
@@ -54,7 +40,13 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             doc.on('end', () => resolve(Buffer.concat(chunks)));
             doc.on('error', reject);
 
-            // --- 1. LIMPEZA DE TEXTO ---
+            const marginH = 65;
+            const marginV = 30;
+            const pageWidth = doc.page.width;
+            const pageHeight = doc.page.height;
+            const textWidth = pageWidth - (marginH * 2);
+
+            // --- 1. LIMPEZA E PREPARAÇÃO ---
             let cleanText = text
                 .replace(/\*\*\{\{CARIMBO_1\}\}\*\*/g, '')
                 .replace(/\*\*\{\{CARIMBO_2\}\}\*\*/g, '')
@@ -68,6 +60,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
 
             for (let i = 0; i < rawLines.length; i++) {
                 const line = rawLines[i].trim();
+                // Identifica se é o rodapé de endereço
                 if (line.match(/(Rua Demóstenes|CEP 04614-013|São Paulo - SP|Terceirização)/i) && i > rawLines.length - 8) {
                     footerText = line;
                 } else {
@@ -75,25 +68,64 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 }
             }
 
-            // --- 2. CABEÇALHO ---
-            if (logoBuffer) {
-                try {
-                    doc.image(logoBuffer, marginH, 35, { width: 115 });
-                } catch (e) { console.error(e); }
+            // --- 2. CÁLCULO DE ESPAÇO DISPONÍVEL ---
+            const startY = 125;
+            const stampsHeight = 90;
+            const footerSpace = 50;
+            const maxTextHeight = pageHeight - startY - stampsHeight - footerSpace - 10;
+
+            // Lógica de Escalonamento Dinâmico
+            let fontSize = 11.5;
+            let lineGap = 1.2;
+
+            // Função para estimar altura total
+            const estimateHeight = (fs, lg) => {
+                let currentY = 0;
+                bodyLines.forEach(line => {
+                    const trimmed = line.trim();
+                    if (trimmed === '') {
+                        currentY += (fs * 0.5);
+                    } else {
+                        const h = doc.fontSize(fs).heightOfString(trimmed, {
+                            width: textWidth,
+                            align: 'justify',
+                            lineGap: lg,
+                            indent: (trimmed.length > 50 && !trimmed.match(/^(AS LOJA|A\/C\.:|Ref\.:|Atenciosamente,)/i)) ? 35 : 0
+                        });
+                        currentY += h + 2; // +2 de margem entre parágrafos
+                    }
+                });
+                return currentY;
+            };
+
+            // Ajusta fonte se necessário para caber em uma página
+            let estimatedHeight = estimateHeight(fontSize, lineGap);
+            while (estimatedHeight > maxTextHeight && fontSize > 8) {
+                fontSize -= 0.5;
+                lineGap -= 0.2;
+                if (lineGap < -1) lineGap = -1;
+                estimatedHeight = estimateHeight(fontSize, lineGap);
             }
 
+            // --- 3. RENDERIZAÇÃO ---
+            // Logo
+            if (logoBuffer) {
+                try {
+                    doc.image(logoBuffer, marginH, 30, { width: 110 });
+                } catch (e) { }
+            }
+
+            // Data
             const months = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
             const now = new Date();
             const dateStr = `Data de emissão: ${now.getDate()} DE ${months[now.getMonth()]} DE ${now.getFullYear()}`;
+            doc.font('Helvetica-Bold').fontSize(9).text(dateStr, marginH, 45, { align: 'right' });
 
-            doc.font('Helvetica-Bold').fontSize(9).fillColor('black');
-            doc.text(dateStr, marginH, 50, { align: 'right' });
+            // Inicia Texto
+            doc.y = startY;
+            doc.fontSize(fontSize).font('Helvetica');
 
-            doc.y = 130; // Início do corpo
-            doc.fontSize(fontSizeBody).font('Helvetica').fillColor('black');
-
-            // --- 3. CORPO (RENDERIZAÇÃO) ---
-            bodyLines.forEach((line) => {
+            bodyLines.forEach(line => {
                 const trimmed = line.trim();
                 if (trimmed === '') {
                     doc.moveDown(0.3);
@@ -101,10 +133,10 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 }
 
                 if (trimmed.startsWith('#')) {
-                    doc.font('Helvetica-Bold').fontSize(fontSizeBody + 1)
+                    doc.font('Helvetica-Bold').fontSize(fontSize + 1)
                         .text(trimmed.replace(/^#+\s*/, ''), { align: 'left' })
                         .moveDown(0.2);
-                    doc.font('Helvetica').fontSize(fontSizeBody);
+                    doc.font('Helvetica').fontSize(fontSize);
                     return;
                 }
 
@@ -132,38 +164,37 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 doc.moveDown(0.2);
             });
 
-            // --- 4. CARIMBOS (FORÇADOS NA PRIMEIRA PÁGINA) ---
-            // Se o texto empurrou para a segunda página, tentamos "voltar" para a primeira
-            // ou garantir que fiquem no final da primeira
+            // --- 4. CARIMBOS E RODAPÉ ---
+            // Garantimos que os carimbos fiquem SEMPRE NO FINAL DA PÁGINA 1
+            // Se o PDFKit criou uma segunda página, nós a "removemos" via switchToPage
+            // embora ela tecnicamente ainda esteja no buffer, o que importa é o que desenhamos.
+            // Mas para garantir real 1 página, vamos forçar doc.y se ele ainda estiver na pag 1.
+
+            doc.switchToPage(0); // Volta para a 1 se ele criou a 2
+
             const carWidth = 155;
             const carHeight = 85;
-            let posY = Math.min(doc.y + 25, doc.page.height - 180);
-
-            // Se o conteúdo real excedeu a página, os carimbos vão para o final da página 1 obrigatoriamente
-            if (doc.bufferedPageCount > 1) {
-                doc.switchToPage(0);
-                posY = doc.page.height - 190;
-            }
+            const posY = pageHeight - marginV - stampsHeight - 15;
 
             if (carimbo1Buffer) {
                 doc.image(carimbo1Buffer, marginH, posY, { fit: [carWidth, carHeight] });
             }
             if (carimbo2Buffer) {
-                const tx = doc.page.width - marginH - carWidth;
+                const tx = pageWidth - marginH - carWidth;
                 doc.image(carimbo2Buffer, tx, posY, { fit: [carWidth, carHeight] });
             }
 
-            // --- 5. RODAPÉ FIXO (PÁGINA 1) ---
             if (footerText) {
-                doc.switchToPage(0);
                 doc.fontSize(8).fillColor('gray').font('Helvetica');
-                doc.text(footerText, marginH, doc.page.height - 40, {
+                doc.text(footerText, marginH, pageHeight - 35, {
                     align: 'center',
-                    width: doc.page.width - (marginH * 2)
+                    width: pageWidth - (marginH * 2)
                 });
             }
 
-            // Se criamos uma segunda página acidentalmente, tentamos ignorá-la ou mantemos apenas a 1
+            // TRUQUE FINAL: Se houver mais de uma página, tentamos "truncar" as páginas extras.
+            // Infelizmente o PDFKit não permite deletar páginas, então o segredo é o loop de scaling acima.
+
             doc.end();
         } catch (error) {
             console.error('[PDFGen] Erro:', error);
