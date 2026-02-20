@@ -7,6 +7,7 @@
         "build": "next build",
         "start": "next start",
         "worker": "node saas-worker.js",
+        "dashboard": "node saas-dashboard.js",
         "lint": "next lint"
     },
     "dependencies": {
@@ -15,7 +16,9 @@
         "axios": "^1.13.5",
         "cheerio": "^1.2.0",
         "clsx": "^2.1.1",
+        "cookie-parser": "^1.4.7",
         "dotenv": "^17.3.1",
+        "express": "^4.22.1",
         "groq-sdk": "^0.37.0",
         "lucide-react": "^0.460.0",
         "next": "15.1.9",
