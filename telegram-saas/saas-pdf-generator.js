@@ -49,8 +49,8 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             // --- 1. PREPARAÇÃO DO TEXTO E RODAPÉ ---
             let footerText = "";
             let cleanText = text
-                .replace(/\*\*\{\{CARIMBO_1\}\}\*\*/g, '{{CARIMBO_1}}')
-                .replace(/\*\*\{\{CARIMBO_2\}\}\*\*/g, '{{CARIMBO_2}}');
+                .replace(/\*\*\{\{CARIMBO_[12]\}\}\*\*/gi, (m) => m.replace(/\*\*/g, '')) // Limpa negrito em volta do placeholder
+                .trim();
 
             const rawLines = cleanText.split('\n');
             const bodyLines = [];
@@ -76,7 +76,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     const t = line.trim();
                     if (t === '') {
                         h += (fs * 0.5);
-                    } else if (t.includes('{{CARIMBO_1}}') || t.includes('{{CARIMBO_2}}')) {
+                    } else if (t.match(/\{\{CARIMBO_[12]\}\}/i)) {
                         h += carHeight + 10;
                     } else {
                         const lineH = doc.fontSize(fs).heightOfString(t, {
@@ -85,7 +85,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                             lineGap: lg,
                             indent: (t.length > 50 && !t.match(/^(AS LOJA|A\/C\.:|Ref\.:|Atenciosamente,)/i)) ? 35 : 0
                         });
-                        h += lineH + 2.5; // Espaço entre parágrafos
+                        h += lineH + 2.5;
                     }
                 });
                 return h;
@@ -93,10 +93,10 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
 
             // Base settings
             let fontSize = compact ? 11.0 : 12.0;
-            let lineGap = compact ? 0.8 : 1.5;
+            let lineGap = compact ? 0.8 : 1.8; // Maior gap base para preencher mais a página
             let totalH = estimateHeight(fontSize, lineGap);
 
-            // A. DOWNWARD SCALING: Se for grande demais, encolhe
+            // A. DOWNWARD SCALING (Se ultrapassar)
             while (totalH + minStampsSpace > availableHeight && fontSize > 7.5) {
                 fontSize -= 0.5;
                 lineGap -= 0.3;
@@ -104,9 +104,9 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 totalH = estimateHeight(fontSize, lineGap);
             }
 
-            // B. UPWARD SCALING: Se for pequeno demais, aumenta para preencher a página
-            if (!compact && totalH + minStampsSpace < (availableHeight * 0.7) && fontSize < 14) {
-                while (totalH + minStampsSpace < (availableHeight * 0.85) && fontSize < 13.5) {
+            // B. UPWARD SCALING (Se sobrar muito espaço)
+            if (!compact && totalH + minStampsSpace < (availableHeight * 0.75)) {
+                while (totalH + minStampsSpace < (availableHeight * 0.9) && fontSize < 14) {
                     fontSize += 0.25;
                     lineGap += 0.25;
                     totalH = estimateHeight(fontSize, lineGap);
@@ -132,19 +132,22 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
 
             bodyLines.forEach(line => {
                 const trimmed = line.trim();
+                const hasStamp = trimmed.match(/\{\{(CARIMBO_[12])\}\}/i);
+
                 if (trimmed === '') {
                     doc.moveDown(0.4);
                     return;
                 }
 
+                const currentY = doc.y;
+
                 // Renderização de Carimbos (DINÂMICA)
-                if (trimmed.includes('{{CARIMBO_1}}') || trimmed.includes('{{CARIMBO_2}}')) {
-                    const currentY = doc.y;
-                    const regex = /\{\{(CARIMBO_[12])\}\}/g;
+                if (hasStamp) {
+                    const regex = /\{\{(CARIMBO_[12])\}\}/gi;
                     let match;
                     let matches = [];
                     while ((match = regex.exec(trimmed)) !== null) {
-                        matches.push({ key: match[1], index: match.index });
+                        matches.push({ key: match[1].toUpperCase(), index: match.index });
                     }
 
                     matches.sort((a, b) => a.index - b.index);
@@ -158,8 +161,10 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                         if (m.key === 'CARIMBO_2') renderedCar2 = true;
                     });
 
-                    doc.y += carHeight + 10;
-                    return;
+                    // Se a linha SÓ tem carimbos, pula a altura deles. 
+                    // Se tem texto junto, o texto será renderizado abaixo ou na mesma altura?
+                    // Para evitar sumir o texto da assinatura, vamos renderizar o texto da linha TAMBÉM.
+                    // Mas vamos remover os placeholders do texto para não aparecerem {{CARIMBO}} escritos.
                 }
 
                 // Títulos (#)
@@ -178,8 +183,15 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     lineGap: lineGap
                 };
 
+                // Limpa os placeholders de carimbo do texto antes de renderizar (se houver texto na linha)
+                let textToRender = line.replace(/\{\{CARIMBO_[12]\}\}/gi, '');
+                if (textToRender.trim() === '' && hasStamp) {
+                    doc.y += carHeight + 10;
+                    return;
+                }
+
                 // Inline Bold (Rich Text)
-                const parts = line.split(/(\*\*.*?\*\*)/g);
+                const parts = textToRender.split(/(\*\*.*?\*\*)/g);
                 if (isHeading) doc.font('Helvetica-Bold');
 
                 parts.forEach((part, index) => {
@@ -193,16 +205,18 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                         doc.text(part, textOpts);
                     }
                 });
-                doc.moveDown(0.3);
+
+                // Se renderizou carimbo E texto na mesma linha, garante que a altura final considera o carimbo
+                if (hasStamp) {
+                    doc.y = Math.max(doc.y, currentY + carHeight + 10);
+                } else {
+                    doc.moveDown(0.3);
+                }
             });
 
-            // Enforce Page 1
-            if (doc.bufferedPageCount > 1) {
-                doc.switchToPage(0);
-            }
-
-            // Fallback para Carimbos
+            // Fallback Carimbos
             if ((!renderedCar1 && carimbo1Buffer) || (!renderedCar2 && carimbo2Buffer)) {
+                if (doc.bufferedPageCount > 1) doc.switchToPage(0);
                 let finalY = Math.max(doc.y + 20, footerY - carHeight - 20);
                 if (!renderedCar1 && carimbo1Buffer) {
                     doc.image(carimbo1Buffer, mH, finalY, { fit: [carWidth, carHeight] });
@@ -214,6 +228,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
 
             // Rodapé Final
             if (footerText) {
+                if (doc.bufferedPageCount > 1) doc.switchToPage(0);
                 doc.fontSize(8.5).fillColor('gray').font('Helvetica');
                 doc.text(footerText, mH, footerY, {
                     align: 'center',

@@ -561,6 +561,9 @@ async function generateAndSendPDF(bot, chatId, data, botData) {
         const { data: templateData } = await supabase.from('templates').select('*').eq('id', templateId).single();
         const templateText = templateData?.conteudo || "Olá {{NOME}}, ...";
 
+        console.log(`[Worker ${INSTANCE_ID}] 📄 Gerando PDF com Template: "${templateData?.nome || 'Desconhecido'}" (ID: ${templateId})`);
+        console.log(`[Worker ${INSTANCE_ID}] 📝 Tamanho do Conteúdo: ${templateText.length} caracteres.`);
+
         // 2. Busca Empresa selecionada (para Logo/Carimbos)
         const { data: empresa } = await supabase.from('empresas').select('*').eq('id', empresaId).single();
 
