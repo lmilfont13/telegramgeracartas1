@@ -225,6 +225,10 @@ function renderTemplate(template, funcionario, botData) {
 
     console.log(`[Bot ${botData.nome}] Valores dos Placeholders:`, JSON.stringify(placeholders, null, 2));
 
+    // 3. Adiciona campos específicos residuais se não foram pegos
+    text = text.replace(/{{CDC}}/gi, `**${placeholders['{{CDC}}'] || extractField(funcionario, 'cdc') || botData.loja_selecionada || '_______'}**`);
+    text = text.replace(/{{AGENCIA}}/gi, `**${placeholders['{{AGENCIA}}'] || extractField(funcionario, 'agencia') || '_______'}**`);
+
     for (const [key, value] of Object.entries(placeholders)) {
         // Escapa caracteres especiais da regex e torna case-insensitive
         const pattern = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -573,16 +577,6 @@ async function generateAndSendPDF(bot, chatId, data, botData) {
             loja_selecionada: data.loja_selecionada
         };
         let finalContent = renderTemplate(templateText, funcionario, botDataWithSelectedCompany);
-
-        // Adiciona substituições específicas aqui, se necessário, antes de gerar o PDF
-        // Exemplo:
-        finalContent = finalContent.replace(/{{CDC}}/g, extractField(funcionario, 'cdc') || botData.loja_selecionada || '_______');
-        finalContent = finalContent.replace(/{{AGENCIA}}/g, extractField(funcionario, 'agencia') || '_______');
-
-        // 4. Compactação de Espaços (Atacadão)
-        if (empresa.nome.toLowerCase().includes('atacad')) {
-            finalContent = finalContent.replace(/\n{3,}/g, '\n\n'); // Max 2 quebras
-        }
 
         // 5. Download de Imagens
         const logoBuffer = await downloadImageFromSupabase(empresa.logo_url);

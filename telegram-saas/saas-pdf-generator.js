@@ -57,7 +57,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             for (let i = 0; i < rawLines.length; i++) {
                 const line = rawLines[i].trim();
                 // Identifica o rodapé de endereço
-                if (line.match(/(Rua Demóstenes|CEP 04614-013|São Paulo - SP|Terceirização)/i) && i > rawLines.length - 8) {
+                if (line.match(/(Rua Demóstenes|CEP 04614-013|São Paulo - SP|Terceirização|POP TRADE)/i) && i > rawLines.length - 8) {
                     footerText = line;
                 } else {
                     bodyLines.push(rawLines[i]);
@@ -66,7 +66,8 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
 
             // --- 2. CÁLCULO DE ESPAÇO E ESCALONAMENTO ---
             const startY = 115;
-            const footerY = pageHeight - 35;
+            const footerY = pageHeight - 40;
+            const minStampsSpace = carHeight + 10;
             const availableHeight = footerY - startY - 5;
 
             const estimateHeight = (fs, lg) => {
@@ -74,9 +75,9 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 bodyLines.forEach(line => {
                     const t = line.trim();
                     if (t === '') {
-                        h += (fs * 0.4);
+                        h += (fs * 0.5);
                     } else if (t.includes('{{CARIMBO_1}}') || t.includes('{{CARIMBO_2}}')) {
-                        h += carHeight + 5;
+                        h += carHeight + 10;
                     } else {
                         const lineH = doc.fontSize(fs).heightOfString(t, {
                             width: textWidth,
@@ -84,22 +85,32 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                             lineGap: lg,
                             indent: (t.length > 50 && !t.match(/^(AS LOJA|A\/C\.:|Ref\.:|Atenciosamente,)/i)) ? 35 : 0
                         });
-                        h += lineH + 1.2;
+                        h += lineH + 2.5; // Espaço entre parágrafos
                     }
                 });
                 return h;
             };
 
-            let fontSize = 11.5;
-            let lineGap = 0.8;
+            // Base settings
+            let fontSize = compact ? 11.0 : 12.0;
+            let lineGap = compact ? 0.8 : 1.5;
             let totalH = estimateHeight(fontSize, lineGap);
 
-            // Loop de ajuste de fonte (Página Única Forçada)
-            while (totalH > availableHeight && fontSize > 7.0) {
+            // A. DOWNWARD SCALING: Se for grande demais, encolhe
+            while (totalH + minStampsSpace > availableHeight && fontSize > 7.5) {
                 fontSize -= 0.5;
                 lineGap -= 0.3;
-                if (lineGap < -2.0) lineGap = -2.0;
+                if (lineGap < -1.8) lineGap = -1.8;
                 totalH = estimateHeight(fontSize, lineGap);
+            }
+
+            // B. UPWARD SCALING: Se for pequeno demais, aumenta para preencher a página
+            if (!compact && totalH + minStampsSpace < (availableHeight * 0.7) && fontSize < 14) {
+                while (totalH + minStampsSpace < (availableHeight * 0.85) && fontSize < 13.5) {
+                    fontSize += 0.25;
+                    lineGap += 0.25;
+                    totalH = estimateHeight(fontSize, lineGap);
+                }
             }
 
             // --- 3. RENDERIZAÇÃO ---
@@ -122,7 +133,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             bodyLines.forEach(line => {
                 const trimmed = line.trim();
                 if (trimmed === '') {
-                    doc.moveDown(0.3);
+                    doc.moveDown(0.4);
                     return;
                 }
 
@@ -136,28 +147,24 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                         matches.push({ key: match[1], index: match.index });
                     }
 
-                    // Ordena por posição no texto para definir Esquerda/Direita
                     matches.sort((a, b) => a.index - b.index);
 
                     matches.forEach((m, i) => {
                         const buffer = m.key === 'CARIMBO_1' ? carimbo1Buffer : carimbo2Buffer;
                         if (!buffer) return;
-
-                        // O primeiro placeholder da linha vai para a esquerda, o segundo para a direita
                         const targetX = (i === 0) ? mH : (pageWidth - mH - carWidth);
                         doc.image(buffer, targetX, currentY, { fit: [carWidth, carHeight] });
-
                         if (m.key === 'CARIMBO_1') renderedCar1 = true;
                         if (m.key === 'CARIMBO_2') renderedCar2 = true;
                     });
 
-                    doc.y += carHeight + 5;
+                    doc.y += carHeight + 10;
                     return;
                 }
 
                 // Títulos (#)
                 if (trimmed.startsWith('#')) {
-                    doc.font('Helvetica-Bold').fontSize(fontSize + 1)
+                    doc.font('Helvetica-Bold').fontSize(fontSize + 1.5)
                         .text(trimmed.replace(/^#+\s*/, ''), { align: 'left' })
                         .moveDown(0.2);
                     doc.font('Helvetica').fontSize(fontSize);
@@ -186,17 +193,17 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                         doc.text(part, textOpts);
                     }
                 });
-                doc.moveDown(0.2);
+                doc.moveDown(0.3);
             });
 
-            // Fallback (Página Única Garantida)
+            // Enforce Page 1
             if (doc.bufferedPageCount > 1) {
                 doc.switchToPage(0);
             }
 
-            // Fallback para Carimbos não encontrados no texto
+            // Fallback para Carimbos
             if ((!renderedCar1 && carimbo1Buffer) || (!renderedCar2 && carimbo2Buffer)) {
-                let finalY = Math.max(doc.y + 10, footerY - carHeight - 15);
+                let finalY = Math.max(doc.y + 20, footerY - carHeight - 20);
                 if (!renderedCar1 && carimbo1Buffer) {
                     doc.image(carimbo1Buffer, mH, finalY, { fit: [carWidth, carHeight] });
                 }
@@ -207,7 +214,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
 
             // Rodapé Final
             if (footerText) {
-                doc.fontSize(8).fillColor('gray').font('Helvetica');
+                doc.fontSize(8.5).fillColor('gray').font('Helvetica');
                 doc.text(footerText, mH, footerY, {
                     align: 'center',
                     width: pageWidth - (mH * 2)
