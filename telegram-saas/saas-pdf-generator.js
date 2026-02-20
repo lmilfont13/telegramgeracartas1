@@ -24,11 +24,11 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
     const carimbo1Buffer = await downloadImage(carimbo1Url);
     const carimbo2Buffer = await downloadImage(carimbo2Url);
 
-    // Ajuste de margens
-    const marginV = compact ? 20 : 60;
-    const marginH = compact ? 25 : 72;
-    const fontSizeBody = compact ? 9.5 : 12;
-    const startY = compact ? 85 : 140;
+    // Configurações de layout
+    const marginH = compact ? 30 : 72;
+    const marginV = compact ? 25 : 60;
+    const fontSizeBody = compact ? 10 : 12;
+    const startY = compact ? 90 : 140;
 
     return new Promise((resolve, reject) => {
         try {
@@ -43,10 +43,31 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             doc.on('end', () => resolve(Buffer.concat(chunks)));
             doc.on('error', reject);
 
-            // --- CABEÇALHO ---
+            // --- 1. PRÉ-PROCESSAMENTO ---
+            // Remove TODOS os placeholders de carimbo do texto para nunca aparecerem como texto bruto
+            let cleanText = text
+                .replace(/(\*\*)?\{\{CARIMBO_1\}\}(\*\*)?/g, '')
+                .replace(/(\*\*)?\{\{CARIMBO_2\}\}(\*\*)?/g, '')
+                .trim();
+
+            const rawLines = cleanText.split('\n');
+            let bodyLines = [];
+            let footerText = "";
+
+            // Identifica o rodapé (últimas linhas que parecem endereço)
+            for (let i = 0; i < rawLines.length; i++) {
+                const line = rawLines[i].trim();
+                if (line.match(/(Rua Demóstenes|CEP 04614-013|São Paulo - SP|Terceirização)/i) && i > rawLines.length - 10) {
+                    footerText = line;
+                } else {
+                    bodyLines.push(rawLines[i]);
+                }
+            }
+
+            // --- 2. CABEÇALHO ---
             if (logoBuffer) {
                 try {
-                    doc.image(logoBuffer, marginH, 30, { width: 120 });
+                    doc.image(logoBuffer, marginH, 30, { width: 125 });
                 } catch (e) { console.error(e); }
             }
 
@@ -58,49 +79,35 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             doc.text(dateStr, marginH, 50, { align: 'right' });
 
             doc.y = startY;
-            doc.font('Helvetica').fontSize(fontSizeBody).fillColor('black');
+            doc.fontSize(fontSizeBody).font('Helvetica');
 
-            // --- PROCESSAMENTO DO TEXTO ---
-            const rawLines = text.split('\n');
-            let footerCandidate = "";
-
-            // Filtro de rodapé mais restrito (apenas se for uma das últimas 5 linhas)
-            const bodyLines = [];
-            for (let i = 0; i < rawLines.length; i++) {
-                const line = rawLines[i].trim();
-                const isFooterAddress = line.match(/(Rua Demóstenes|CEP 04614-013|São Paulo - SP)/i) && i > rawLines.length - 6;
-                if (isFooterAddress) {
-                    footerCandidate = line;
-                } else {
-                    bodyLines.push(rawLines[i]);
-                }
-            }
-
-            // Renderização
-            for (let line of bodyLines) {
+            // --- 3. CORPO DA CARTA ---
+            bodyLines.forEach((line) => {
                 if (line.trim() === '') {
-                    doc.moveDown(0.4);
-                    continue;
+                    doc.moveDown(0.5);
+                    return;
                 }
 
+                // Header automático (#)
                 if (line.trim().startsWith('#')) {
                     doc.font('Helvetica-Bold').fontSize(fontSizeBody + 2)
                         .text(line.replace(/^#+\s*/, ''), { align: 'left' })
-                        .moveDown(0.2);
+                        .moveDown(0.3);
                     doc.font('Helvetica').fontSize(fontSizeBody);
-                    continue;
+                    return;
                 }
 
+                // Opções de renderização
+                const isHeaderLine = line.match(/^(AS LOJA|A\/C\.:|Ref\.:|Atenciosamente,)/i);
                 const options = {
-                    align: 'justify',
-                    indent: (line.trim().length > 60 && !line.includes(':')) ? 35 : 0,
-                    lineGap: compact ? -1.5 : 1.5
+                    align: isHeaderLine ? 'left' : 'justify',
+                    indent: (!isHeaderLine && line.trim().length > 50) ? 35 : 0,
+                    lineGap: compact ? -1 : 1.5
                 };
 
+                // Renderização com Negrito Inline
                 const parts = line.split(/(\*\*.*?\*\*)/g);
-                if (line.match(/^(AS LOJA|A\/C\.:|Ref\.:|Atenciosamente,)/i)) {
-                    doc.font('Helvetica-Bold');
-                }
+                if (isHeaderLine) doc.font('Helvetica-Bold');
 
                 parts.forEach((part, index) => {
                     const isLast = index === parts.length - 1;
@@ -109,26 +116,24 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     if (part.startsWith('**') && part.endsWith('**')) {
                         doc.font('Helvetica-Bold').text(part.slice(2, -2), textOptions);
                     } else if (part !== '' || isLast) {
-                        doc.font('Helvetica').text(part, textOptions);
+                        if (!isHeaderLine) doc.font('Helvetica');
+                        doc.text(part, textOptions);
                     }
                 });
 
-                if (line.includes('{{CARIMBO_1}}') || line.includes('{{CARIMBO_2}}')) {
-                    doc.moveDown(4);
-                }
-            }
+                doc.font('Helvetica'); // Reset
+            });
 
-            // --- CARIMBOS ---
-            let posY = doc.y + 20;
+            // --- 4. CARIMBOS (FINAL DA PÁGINA) ---
+            let posY = doc.y + 30;
             const carWidth = 160;
             const carHeight = 85;
 
+            // Se não couber, tenta reduzir margem ou sobe um pouco
             if (posY > doc.page.height - 180) {
-                if (posY > doc.page.height - 140) {
-                    doc.addPage();
-                    posY = marginV + 20;
-                } else {
-                    posY = doc.page.height - 180; // Força no final da página atual se couber raspando
+                if (posY > doc.page.height - 130) {
+                    // Se estiver muito embaixo, tenta subir um pouco o ponto de inserção
+                    posY = doc.page.height - 185;
                 }
             }
 
@@ -140,28 +145,24 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 doc.image(carimbo2Buffer, targetX, posY, { fit: [carWidth, carHeight] });
             }
 
-            // --- RODAPÉ FIXO ---
-            if (footerCandidate) {
-                // Cálculo robusto do número de páginas
-                const totalPageCount = doc.bufferedPageCount || (doc._pages ? doc._pages.length : 1);
-
-                doc.switchToPage(0); // Volta para a primeira página
+            // --- 5. RODAPÉ FIXO (TOTALMENTE AO FUNDO) ---
+            if (footerText) {
+                // Força escrita na primeira página para garantir rodapé limpo
+                const lastPage = doc.bufferedPageCount - 1;
+                doc.switchToPage(0);
 
                 doc.fontSize(8).fillColor('gray').font('Helvetica');
-                doc.text(footerCandidate, marginH, doc.page.height - 50, {
+                doc.text(footerText, marginH, doc.page.height - 45, {
                     align: 'center',
                     width: doc.page.width - (marginH * 2)
                 });
 
-                // Retorna para a última página se necessário (para fechar o doc corretamente)
-                if (totalPageCount > 1 && !isNaN(totalPageCount)) {
-                    doc.switchToPage(totalPageCount - 1);
-                }
+                doc.switchToPage(lastPage);
             }
 
             doc.end();
         } catch (error) {
-            console.error('[PDFGen] Erro Fatal:', error);
+            console.error('[PDFGen] Fatal Error:', error);
             reject(error);
         }
     });
