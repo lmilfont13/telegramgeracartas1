@@ -122,10 +122,10 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     continue;
                 }
 
-                // Detect address lines to move to footer
-                if (line.match(/(Rua|CEP|Campo Belo|São Paulo - SP|Terceirização)/i) && line.length > 25) {
+                // Detect address lines to move to footer (looking at the end of the document)
+                if (line.match(/(Rua Demóstenes|CEP 04614-013|São Paulo - SP)/i) && lines.indexOf(line) > lines.length - 5) {
                     footerText = line;
-                    continue;
+                    continue; // Skip rendering address in the body
                 }
 
                 // Header lines (#)
