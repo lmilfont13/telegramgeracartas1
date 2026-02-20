@@ -64,15 +64,14 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 }
             }
 
-            // Data - Right Aligned with formatting
+            // Data - Right Aligned
             const months = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
             const now = new Date();
             const dateStr = `Data de emissão: ${now.getDate()} DE ${months[now.getMonth()]} DE ${now.getFullYear()}`;
 
             doc.save();
             doc.font('Helvetica-Bold').fontSize(9).fillColor('black');
-            doc.text(dateStr, doc.page.width - marginVal - 250, 60, {
-                width: 250,
+            doc.text(dateStr, marginVal, 60, {
                 align: 'right'
             });
             doc.restore();
@@ -84,41 +83,48 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             doc.fontSize(fontSizeBody);
             doc.fillColor('black');
 
-            const parseAndRenderLine = (line, x, y, isFirstLine = false) => {
-                let currentX = x + (isFirstLine ? 35 : 0);
-                let currentY = y;
+            /**
+             * Renders a line with bold support (**text**) while maintaining word wrap.
+             */
+            const renderRichText = (line, options = {}) => {
+                const parts = line.split(/(\*\*.*?\*\*)/g);
 
-                // Bold specific headers automatically
+                // Bold specific lines automatically
                 if (line.match(/^(AS LOJA|A\/C\.:|Ref\.:|Atenciosamente,)/i)) {
                     doc.font('Helvetica-Bold');
                 }
 
-                const parts = line.split(/(\*\*.*?\*\*)/g);
+                parts.forEach((part, index) => {
+                    const isLast = index === parts.length - 1;
+                    const combinedOptions = { ...options, continued: !isLast };
 
-                parts.forEach(part => {
                     if (part.startsWith('**') && part.endsWith('**')) {
                         const content = part.slice(2, -2);
-                        doc.font('Helvetica-Bold');
-                        doc.text(content, currentX, currentY, { lineBreak: false });
-                        currentX += doc.widthOfString(content);
-                        doc.font('Helvetica');
-                    } else {
-                        doc.text(part, currentX, currentY, { lineBreak: false });
-                        currentX += doc.widthOfString(part);
+                        doc.font('Helvetica-Bold').text(content, combinedOptions);
+                    } else if (part !== '') {
+                        doc.font('Helvetica').text(part, combinedOptions);
+                    } else if (isLast && part === '') {
+                        // End flow
+                        doc.text('', options);
                     }
                 });
 
-                // Break line at the end
                 doc.font('Helvetica'); // Reset
-                doc.moveDown(compact ? 1 : 1.2);
             };
 
             const lines = text.split('\n');
             let hasInlineStamps = false;
+            let footerText = '';
 
             for (let line of lines) {
                 if (!line || line.trim() === '') {
                     doc.moveDown(0.5);
+                    continue;
+                }
+
+                // Detect address lines to move to footer
+                if (line.match(/(Rua|CEP|Campo Belo|São Paulo - SP|Terceirização)/i) && line.length > 25) {
+                    footerText = line;
                     continue;
                 }
 
@@ -153,25 +159,27 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     }
                 }
 
-                // Detect if it's a paragraph (starts with indentation in many styles)
-                // Here we apply 35pt indentation to lines that follow an empty line or are start of block
-                const isFirstLineOfParagraph = line.length > 50;
+                // Apply indentation for long lines
+                const textOptions = {
+                    align: 'justify',
+                    indent: line.length > 60 ? 30 : 0,
+                    lineGap: compact ? -1.5 : 2
+                };
 
-                parseAndRenderLine(line, marginVal, doc.y, isFirstLineOfParagraph);
-
+                renderRichText(line, textOptions);
                 if (extraY > 0) doc.y += extraY;
             }
 
-            // Footer / Stamps handling (if not inline)
+            // Footer / Stamps handling
             if (!hasInlineStamps) {
-                let posY = doc.y + 20;
+                let posY = doc.y + 30;
                 const carimboHeight = 90;
                 const carimboWidth = 170;
                 const pageWidth = doc.page.width;
 
                 if (posY > doc.page.height - 200) {
                     doc.addPage();
-                    posY = 50;
+                    posY = marginVal;
                 }
 
                 let posX1 = marginVal;
@@ -184,14 +192,17 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     const targetX = stampPosition === 'direita' ? (pageWidth - marginVal - carimboWidth) : posX2;
                     doc.image(carimbo2Buffer, targetX, posY, { fit: [carimboWidth, carimboHeight] });
                 }
-                posY += carimboHeight;
             }
 
-            // Decor line
-            doc.strokeColor('#eeeeee').lineWidth(0.5)
-                .moveTo(marginVal, doc.page.height - 40)
-                .lineTo(doc.page.width - marginVal, doc.page.height - 40)
-                .stroke();
+            // --- FIXED FOOTER (ADDRESS) ---
+            if (footerText) {
+                const footerY = doc.page.height - 60;
+                doc.fontSize(8).font('Helvetica').fillColor('gray');
+                doc.text(footerText, marginVal, footerY, {
+                    align: 'center',
+                    width: doc.page.width - (marginVal * 2)
+                });
+            }
 
             doc.end();
         } catch (error) {
