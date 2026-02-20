@@ -54,26 +54,27 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             doc.on('end', () => resolve(Buffer.concat(chunks)));
             doc.on('error', reject);
 
-            // Logo
-            console.log(`[PDFGen] Logo buffer: ${logoBuffer ? logoBuffer.length : 'null'}`);
+            // Logo - Left Aligned
             if (logoBuffer) {
                 try {
-                    doc.image(logoBuffer, marginVal, 40, { width: 120 });
+                    doc.image(logoBuffer, marginVal, 35, { width: 130 });
                     console.log(`[PDFGen] Logo inserida.`);
                 } catch (e) {
                     console.error(`[PDFGen] Erro ao inserir logo:`, e.message);
                 }
             }
 
-            // Data
+            // Data - Right Aligned with formatting
+            const months = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
+            const now = new Date();
+            const dateStr = `Data de emissão: ${now.getDate()} DE ${months[now.getMonth()]} DE ${now.getFullYear()}`;
+
             doc.save();
-            const currentDate = new Date().toLocaleDateString('pt-BR');
-            doc.fontSize(10).fillColor('black')
-                .text(currentDate, doc.page.width - 150, 40, {
-                    width: 100,
-                    align: 'right',
-                    lineBreak: false
-                });
+            doc.font('Helvetica-Bold').fontSize(9).fillColor('black');
+            doc.text(dateStr, doc.page.width - marginVal - 250, 60, {
+                width: 250,
+                align: 'right'
+            });
             doc.restore();
 
             doc.x = marginVal;
@@ -83,193 +84,118 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             doc.fontSize(fontSizeBody);
             doc.fillColor('black');
 
-            console.log(`[PDFGen] Texto a ser escrito (primeiros 100 chars): "${text.substring(0, 100).replace(/\n/g, ' ')}..."`);
+            const parseAndRenderLine = (line, x, y, isFirstLine = false) => {
+                let currentX = x + (isFirstLine ? 35 : 0);
+                let currentY = y;
 
-            // Regex para INLINE é removido. Agora detectamos linha a linha para OVERLAY.
-            let pendingStamps = [];
+                // Bold specific headers automatically
+                if (line.match(/^(AS LOJA|A\/C\.:|Ref\.:|Atenciosamente,)/i)) {
+                    doc.font('Helvetica-Bold');
+                }
 
-            // Variáveis comuns para o rodapé (definidas fora para evitar erro de escopo)
-            const carimboHeight = 90;
-            const carimboWidth = 170;
-            const margin = marginVal;
-            const pageWidth = doc.page.width;
-            let posY = doc.page.height - 180; // Valor padrão para uso posterior
+                const parts = line.split(/(\*\*.*?\*\*)/g);
 
-            // Configuração Compacta (Reaplicar para garantir)
-            if (compact) {
-                doc.fontSize(8);
-                doc.fillColor('black');
-            } else {
-                doc.fontSize(12);
-            }
+                parts.forEach(part => {
+                    if (part.startsWith('**') && part.endsWith('**')) {
+                        const content = part.slice(2, -2);
+                        doc.font('Helvetica-Bold');
+                        doc.text(content, currentX, currentY, { lineBreak: false });
+                        currentX += doc.widthOfString(content);
+                        doc.font('Helvetica');
+                    } else {
+                        doc.text(part, currentX, currentY, { lineBreak: false });
+                        currentX += doc.widthOfString(part);
+                    }
+                });
+
+                // Break line at the end
+                doc.font('Helvetica'); // Reset
+                doc.moveDown(compact ? 1 : 1.2);
+            };
 
             const lines = text.split('\n');
+            let hasInlineStamps = false;
+
             for (let line of lines) {
-                if (!line) { // Linha vazia ou null
-                    if (compact) {
-                        doc.y += 1.5;
-                    } else {
-                        doc.moveDown(0.5);
-                    }
+                if (!line || line.trim() === '') {
+                    doc.moveDown(0.5);
                     continue;
                 }
 
-                if (line.trim() === '') {
-                    if (compact) doc.y += 1.5;
-                    else doc.moveDown(0.5);
-                    continue;
-                }
-
-                // --- DETECÇÃO E POSICIONAMENTO EXATO DOS CARIMBOS ---
-                // Agora calculamos a posição X baseada no texto ANTES do placeholder.
-
-                let extraY = 0; // Espaço extra a adicionar DEPOIS de imprimir a linha
-
-                if (line.includes('{{CARIMBO_1}}')) {
-                    hasInlineStamps = true;
-                    if (carimbo1Buffer) {
-                        try {
-                            // Calcula X baseado no prefixo
-                            const idx = line.indexOf('{{CARIMBO_1}}');
-                            const prefix = line.substring(0, idx);
-                            const prefixWidth = doc.widthOfString(prefix);
-                            let xPos = margin + prefixWidth;
-
-                            // Ajuste fino se o usuário usou espaços
-                            console.log(`[PDFGen] Placeholder 1 encontrado. Prefix: "${prefix}", Width: ${prefixWidth}, X: ${xPos}`);
-
-                            // Desenha o carimbo NA LINHA ATUAL (overlay)
-                            doc.image(carimbo1Buffer, xPos, doc.y - 10, { width: 120, height: 60 });
-                            // Nota: doc.y - 10 para subir um pouco e centralizar na linha de base
-
-                            extraY = Math.max(extraY, 50); // Reserva espaço
-                        } catch (e) {
-                            console.error("Erro ao calcular posição do carimbo 1:", e);
-                        }
-                    }
-                    // Remove o placeholder da string para imprimir o resto limpo
-                    line = line.replace('{{CARIMBO_1}}', '          ');
-                }
-
-                if (line.includes('{{CARIMBO_2}}')) {
-                    hasInlineStamps = true;
-                    if (carimbo2Buffer) {
-                        try {
-                            const idx = line.indexOf('{{CARIMBO_2}}');
-                            const prefix = line.substring(0, idx);
-                            const prefixWidth = doc.widthOfString(prefix);
-                            let xPos = margin + prefixWidth;
-
-                            console.log(`[PDFGen] Placeholder 2 encontrado. Prefix: "${prefix}", Width: ${prefixWidth}, X: ${xPos}`);
-
-                            doc.image(carimbo2Buffer, xPos, doc.y - 10, { width: 120, height: 60 });
-
-                            extraY = Math.max(extraY, 50);
-                        } catch (e) {
-                            console.error("Erro ao calcular posição do carimbo 2:", e);
-                        }
-                    }
-                    line = line.replace('{{CARIMBO_2}}', '          ');
-                }
-
-                // Renderiza o texto (agora limpo das tags, mas COM o conteúdo restante)
+                // Header lines (#)
                 if (line.trim().startsWith('#')) {
-                    doc.fontSize(compact ? 9 : 14).font('Helvetica-Bold')
+                    doc.fontSize(compact ? 10 : 14).font('Helvetica-Bold')
                         .text(line.replace(/^#+\s*/, ''), { align: 'left' })
                         .moveDown(0.2);
-                    doc.fontSize(compact ? 8 : 12).font('Helvetica');
-                    // Se tiver carimbo no título (raro), avança
-                    if (extraY > 0) doc.y += extraY;
+                    doc.fontSize(fontSizeBody).font('Helvetica');
                     continue;
                 }
 
-                // Imprime a linha
-                doc.text(line, { align: 'left', lineGap: compact ? -1.5 : 2 });
-
-                // Avança o espaço reservado para os carimbos
-                if (extraY > 0) {
-                    doc.y += extraY;
-                    posY = doc.y; // Atualiza rastreador
-                }
-
-                continue; // Já imprimimos a linha manualmente acima
-            }
-            // (Removemos o loop pendingStamps antigo aqui)
-
-            // Atualiza posY baseada no final do texto
-            posY = doc.y;
-
-            // Se NÃO tiver carimbos inline, usa comportamento padrão de rodapé
-            if (!hasInlineStamps) {
-                let posX1 = margin;
-                let posX2 = pageWidth - margin - carimboWidth;
-
-                // Sobrescrever se for personalizado
-                if (stampPosition === 'personalizado' && customCoords) {
-                    posX1 = Number(customCoords.x) || margin;
-                    posY = Number(customCoords.y) || posY;
-                    posX2 = posX1 + carimboWidth + 20;
-                } else {
-                    // Se não houver espaço na página atual:
-                    const bottomMargin = compact ? 50 : 200;
-
-                    if (doc.y > doc.page.height - bottomMargin) {
-                        if (!compact) {
-                            doc.addPage();
-                            posY = 72;
-                        } else {
-                            // Compacto Nuclear: Tenta usar até o último pixel
-                            posY = doc.y + 2;
-                            if (posY > 825) { // Limite absoluto A4 ~841
-                                doc.addPage();
-                                posY = 20;
-                            }
-                        }
-                    } else {
-                        // Posicionamento
-                        if (compact) {
-                            // Cola imediata com overlap se precisar
-                            posY = doc.y + 5;
-                        } else {
-                            posY = doc.page.height - 180;
-                        }
+                // Handle Inline Stamps
+                let extraY = 0;
+                if (line.includes('{{CARIMBO_1}}') || line.includes('{{CARIMBO_2}}')) {
+                    hasInlineStamps = true;
+                    if (line.includes('{{CARIMBO_1}}') && carimbo1Buffer) {
+                        const idx = line.indexOf('{{CARIMBO_1}}');
+                        const prefix = line.substring(0, idx).replace(/\*\*/g, '');
+                        const prefixWidth = doc.widthOfString(prefix);
+                        doc.image(carimbo1Buffer, marginVal + prefixWidth, doc.y - 10, { width: 120, height: 60 });
+                        line = line.replace('{{CARIMBO_1}}', '          ');
+                        extraY = 50;
+                    }
+                    if (line.includes('{{CARIMBO_2}}') && carimbo2Buffer) {
+                        const idx = line.indexOf('{{CARIMBO_2}}');
+                        const prefix = line.substring(0, idx).replace(/\*\*/g, '');
+                        const prefixWidth = doc.widthOfString(prefix);
+                        doc.image(carimbo2Buffer, marginVal + prefixWidth, doc.y - 10, { width: 120, height: 60 });
+                        line = line.replace('{{CARIMBO_2}}', '          ');
+                        extraY = 50;
                     }
                 }
 
-                console.log(`[PDFGen] Modo Footer: ${stampPosition}, Pos: X1=${posX1}, Y=${posY}`);
+                // Detect if it's a paragraph (starts with indentation in many styles)
+                // Here we apply 35pt indentation to lines that follow an empty line or are start of block
+                const isFirstLineOfParagraph = line.length > 50;
 
-                if (carimbo1Buffer && (stampPosition === 'ambos' || stampPosition === 'esquerda' || stampPosition === 'personalizado')) {
+                parseAndRenderLine(line, marginVal, doc.y, isFirstLineOfParagraph);
+
+                if (extraY > 0) doc.y += extraY;
+            }
+
+            // Footer / Stamps handling (if not inline)
+            if (!hasInlineStamps) {
+                let posY = doc.y + 20;
+                const carimboHeight = 90;
+                const carimboWidth = 170;
+                const pageWidth = doc.page.width;
+
+                if (posY > doc.page.height - 200) {
+                    doc.addPage();
+                    posY = 50;
+                }
+
+                let posX1 = marginVal;
+                let posX2 = pageWidth - marginVal - carimboWidth;
+
+                if (carimbo1Buffer && (stampPosition === 'ambos' || stampPosition === 'esquerda')) {
                     doc.image(carimbo1Buffer, posX1, posY, { fit: [carimboWidth, carimboHeight] });
                 }
                 if (carimbo2Buffer && (stampPosition === 'ambos' || stampPosition === 'direita')) {
-                    const targetX = stampPosition === 'direita' ? (pageWidth - margin - carimboWidth) : posX2;
+                    const targetX = stampPosition === 'direita' ? (pageWidth - marginVal - carimboWidth) : posX2;
                     doc.image(carimbo2Buffer, targetX, posY, { fit: [carimboWidth, carimboHeight] });
                 }
-
-                // Ajusta posY para a linha final
-                posY = posY + carimboHeight;
-            } // Fim do check se não tem stamps pendentes
-
-
-            // --- FORÇAR RODAPÉ NA MESMA PÁGINA (NUCLEAR) ---
-            // Se posY passou do limite da página, CLAMPA ele para o finalzinho
-            const maxPageY = doc.page.height - 40;
-            if (posY > maxPageY) {
-                console.log(`[PDFGen] PosY (${posY}) passou do limite (${maxPageY}). Forçando rodapé.`);
-                posY = maxPageY;
-                // Se o cursor do texto também passou, volta
-                if (doc.y > maxPageY) doc.y = maxPageY - 10;
+                posY += carimboHeight;
             }
 
-            // Linha final decorativa
-            const lineY = posY + 5; // Margem mínima
-            doc.strokeColor('#dddddd').lineWidth(0.5)
-                .moveTo(margin, lineY)
-                .lineTo(pageWidth - margin, lineY)
+            // Decor line
+            doc.strokeColor('#eeeeee').lineWidth(0.5)
+                .moveTo(marginVal, doc.page.height - 40)
+                .lineTo(doc.page.width - marginVal, doc.page.height - 40)
                 .stroke();
 
             doc.end();
         } catch (error) {
+            console.error('[PDFGen] Fatal Error:', error);
             reject(error);
         }
     });

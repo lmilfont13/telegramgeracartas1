@@ -228,7 +228,9 @@ function renderTemplate(template, funcionario, botData) {
     for (const [key, value] of Object.entries(placeholders)) {
         // Escapa caracteres especiais da regex e torna case-insensitive
         const pattern = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        text = text.replace(new RegExp(pattern, 'gi'), value || '');
+        // Adiciona marcador de negrito (**) se houver valor, exceto para campos de data/loja que podem ter lógica própria
+        const formattedValue = (value && !['{{DATA}}', '{{DATA_ATUAL}}'].includes(key)) ? `**${value}**` : (value || '');
+        text = text.replace(new RegExp(pattern, 'gi'), formattedValue);
     }
     return text;
 }
