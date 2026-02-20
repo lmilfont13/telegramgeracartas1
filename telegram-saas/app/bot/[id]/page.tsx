@@ -59,7 +59,7 @@ export default async function BotPage({ params }: { params: Promise<{ id: string
                     {/* Configurações Básicas */}
                     <div className="rounded-lg border bg-white p-6 shadow-sm">
                         <h2 className="text-lg font-semibold mb-4">Configurações</h2>
-                        <form action={async (fd) => { 'use server'; await updateBot(fd); }} className="space-y-4">
+                        <form action={updateBot} className="space-y-4">
                             <input type="hidden" name="id" value={bot.id} />
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Nome do Bot</label>
@@ -70,7 +70,7 @@ export default async function BotPage({ params }: { params: Promise<{ id: string
                                 />
                             </div>
                             <div className="flex justify-end">
-                                <button className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors">
+                                <button type="submit" className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors">
                                     Salvar Nome
                                 </button>
                             </div>
@@ -78,14 +78,14 @@ export default async function BotPage({ params }: { params: Promise<{ id: string
 
                         <div className="mt-4 pt-4 border-t">
                             <label className="block text-sm font-medium text-gray-700">Token Telegram</label>
-                            <form action={async (fd) => { 'use server'; await updateToken(fd); }} className="mt-1 flex gap-2">
+                            <form action={updateToken} className="mt-1 flex gap-2">
                                 <input type="hidden" name="id" value={bot.id} />
                                 <input
                                     name="token"
                                     defaultValue={bot.token_telegram}
                                     className="block w-full rounded-md border border-gray-300 bg-gray-50 p-2 text-gray-600 shadow-sm"
                                 />
-                                <button className="rounded border bg-white px-3 py-2 text-sm hover:bg-gray-50 transition-colors">
+                                <button type="submit" className="rounded border bg-white px-3 py-2 text-sm hover:bg-gray-50 transition-colors">
                                     Atualizar Token
                                 </button>
                             </form>
@@ -144,6 +144,7 @@ export default async function BotPage({ params }: { params: Promise<{ id: string
 
                         <div className="mt-8">
                             <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Últimos Importados</h3>
+                            {/* @ts-expect-error Async Server Component */}
                             <EmployeeList botId={bot.id} />
                         </div>
                     </div>
