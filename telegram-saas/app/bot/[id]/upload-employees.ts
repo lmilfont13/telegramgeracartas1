@@ -150,3 +150,22 @@ export async function uploadEmployees(formData: FormData) {
         return { error: 'Erro ao processar arquivo: ' + e.message }
     }
 }
+
+export async function deleteAllEmployees(botId: string) {
+    const supabase = await createClient()
+
+    // Buscar empresa do bot
+    const { data: bot } = await supabase.from('bots').select('empresa_id').eq('id', botId).single()
+    if (!bot) return { error: 'Bot não encontrado.' }
+
+    const { error } = await supabase
+        .from('funcionarios')
+        .delete()
+        .eq('empresa_id', bot.empresa_id)
+
+    if (error) return { error: error.message }
+
+    revalidatePath(`/bot/${botId}`)
+    revalidatePath(`/empresa/${bot.empresa_id}`)
+    return { success: 'Todos os funcionários foram removidos.' }
+}

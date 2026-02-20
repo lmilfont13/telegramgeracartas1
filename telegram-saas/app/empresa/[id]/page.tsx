@@ -30,6 +30,10 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
         );
     }
 
+    // Busca o primeiro bot desta empresa para usar no componente de upload
+    const { data: bots } = await supabase.from("bots").select("id").eq("empresa_id", empresaId).limit(1);
+    const firstBot = bots?.[0];
+
     // Ação para salvar o nome da empresa
     async function updateCompany(formData: FormData) {
         'use server'
@@ -212,6 +216,16 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
                                 O bot usará esta lista quando <strong>{empresa.nome}</strong> for selecionada.
                             </p>
 
+                            {/* Assistant for upload inside Company Page */}
+                            <div className="mb-10 pb-10 border-b border-gray-100">
+                                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <FileSpreadsheet className="h-3 w-3" />
+                                    Assistente de Importação
+                                </h3>
+                                <EmployeeUploadInteractive botId={firstBot?.id || ""} />
+                            </div>
+
+                            {/* @ts-expect-error Async Server Component */}
                             <EmployeeList empresaId={empresa.id} />
                         </div>
                     </section>
@@ -220,6 +234,10 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
         </div>
     );
 }
+
+// Subcomponent to import EmployeeUploadInteractive
+import EmployeeUploadInteractive from "../../bot/[id]/EmployeeUploadInteractive";
+import { FileSpreadsheet } from "lucide-react";
 
 async function EmployeeList({ empresaId }: { empresaId: string }) {
     const supabase = await createClient();

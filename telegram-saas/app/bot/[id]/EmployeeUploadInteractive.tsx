@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import * as XLSX from 'xlsx'
-import { uploadEmployees } from './upload-employees'
-import { FileSpreadsheet, MapIcon, CheckCircle2, Loader2, AlertCircle } from 'lucide-react'
+import { uploadEmployees, deleteAllEmployees } from './upload-employees'
+import { FileSpreadsheet, MapIcon, CheckCircle2, Loader2, AlertCircle, Trash2 } from 'lucide-react'
 
 interface Mapping {
     nome: string;
@@ -24,6 +24,25 @@ export default function EmployeeUploadInteractive({ botId }: { botId: string }) 
     })
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+
+    const handleDeleteAll = async () => {
+        if (!confirm('TEM CERTEZA? Isso excluirá TODOS os funcionários desta marca permanentemente.')) return
+
+        setLoading(true)
+        setMessage(null)
+        try {
+            const result = await deleteAllEmployees(botId)
+            if ('error' in result) {
+                setMessage({ type: 'error', text: result.error as string })
+            } else {
+                setMessage({ type: 'success', text: result.success as string })
+            }
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Erro ao excluir dados.' })
+        } finally {
+            setLoading(false)
+        }
+    }
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0]
@@ -107,6 +126,15 @@ export default function EmployeeUploadInteractive({ botId }: { botId: string }) 
                         <p className="text-sm font-bold text-gray-700">Clique ou arraste sua planilha aqui</p>
                         <p className="text-xs text-gray-400 mt-1">Excel (.xlsx, .xls) ou CSV</p>
                     </div>
+
+                    <button
+                        onClick={handleDeleteAll}
+                        disabled={loading}
+                        className="w-fit self-center px-4 py-2 text-xs font-bold text-red-500 hover:text-white border border-red-200 hover:bg-red-500 rounded-xl transition-all flex items-center gap-2 group shadow-sm bg-white"
+                    >
+                        <Trash2 className="h-3 w-3 group-hover:rotate-12 transition-transform" />
+                        LIMPAR BASE (EXCLUIR TUDO)
+                    </button>
                 </div>
             ) : (
                 <div className="bg-blue-50/50 rounded-2xl p-6 border border-blue-100 animate-in fade-in slide-in-from-top-2">
