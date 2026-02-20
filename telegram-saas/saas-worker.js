@@ -104,7 +104,7 @@ function extractField(funcionario, type) {
         nome: {
             keys: ['nome', 'funcionario', 'candidato', 'promotor', 'colaborador', 'completo', 'funcionarios'],
             blacklist: ['cpf', 'rg', 'id', 'cod', 'conta', 'nascimento', 'data', 'inicio', 'admissao'],
-            valueCheck: (v) => v && v.length > 3 && !/^\d{7,}$/.test(v.replace(/[\.\-\/]/g, ''))
+            valueCheck: (v) => v && v.length >= 3 && !/^\d{7,}$/.test(v.replace(/[\.\-\/]/g, ''))
         },
         loja: {
             keys: ['loja', 'unidade', 'filial', 'ponto', 'pdv', 'local', 'cidade', 'estado', 'uf', 'cdc'],
