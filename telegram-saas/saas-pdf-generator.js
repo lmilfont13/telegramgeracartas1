@@ -24,11 +24,11 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
     const carimbo1Buffer = await downloadImage(carimbo1Url);
     const carimbo2Buffer = await downloadImage(carimbo2Url);
 
-    // Ajuste de margens para garantir que caiba em uma página
+    // Ajuste de margens
     const marginV = compact ? 20 : 60;
     const marginH = compact ? 25 : 72;
-    const fontSizeBody = compact ? 9.5 : 12; // Aumentado um pouco para legibilidade
-    const startY = compact ? 80 : 140;
+    const fontSizeBody = compact ? 9.5 : 12;
+    const startY = compact ? 85 : 140;
 
     return new Promise((resolve, reject) => {
         try {
@@ -43,7 +43,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             doc.on('end', () => resolve(Buffer.concat(chunks)));
             doc.on('error', reject);
 
-            // --- CABEÇALHO (LOGO E DATA) ---
+            // --- CABEÇALHO ---
             if (logoBuffer) {
                 try {
                     doc.image(logoBuffer, marginH, 30, { width: 120 });
@@ -61,30 +61,28 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             doc.font('Helvetica').fontSize(fontSizeBody).fillColor('black');
 
             // --- PROCESSAMENTO DO TEXTO ---
-            // Divide o texto mas preserva os parágrafos para a justificação
             const rawLines = text.split('\n');
             let footerCandidate = "";
 
-            // Filtra o rodapé (última linha que parece endereço)
+            // Filtro de rodapé mais restrito (apenas se for uma das últimas 5 linhas)
             const bodyLines = [];
             for (let i = 0; i < rawLines.length; i++) {
                 const line = rawLines[i].trim();
-                // Se a linha for o endereço (Rua Demostenes etc), salva para o footer
-                if (line.match(/(Rua Demóstenes|CEP 04614-013|São Paulo - SP)/i)) {
+                const isFooterAddress = line.match(/(Rua Demóstenes|CEP 04614-013|São Paulo - SP)/i) && i > rawLines.length - 6;
+                if (isFooterAddress) {
                     footerCandidate = line;
                 } else {
                     bodyLines.push(rawLines[i]);
                 }
             }
 
-            // Renderização das linhas do corpo
+            // Renderização
             for (let line of bodyLines) {
                 if (line.trim() === '') {
-                    doc.moveDown(0.5);
+                    doc.moveDown(0.4);
                     continue;
                 }
 
-                // Header automático (#)
                 if (line.trim().startsWith('#')) {
                     doc.font('Helvetica-Bold').fontSize(fontSizeBody + 2)
                         .text(line.replace(/^#+\s*/, ''), { align: 'left' })
@@ -93,17 +91,13 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     continue;
                 }
 
-                // Opções de texto (Justificado e Indentado)
                 const options = {
                     align: 'justify',
-                    indent: (line.length > 40 && !line.includes(':')) ? 35 : 0,
-                    lineGap: compact ? -1 : 1.5
+                    indent: (line.trim().length > 60 && !line.includes(':')) ? 35 : 0,
+                    lineGap: compact ? -1.5 : 1.5
                 };
 
-                // Suporte a Negrito Inline (**texto**)
                 const parts = line.split(/(\*\*.*?\*\*)/g);
-
-                // Bold automático para linhas de cabeçalho comuns
                 if (line.match(/^(AS LOJA|A\/C\.:|Ref\.:|Atenciosamente,)/i)) {
                     doc.font('Helvetica-Bold');
                 }
@@ -119,25 +113,22 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     }
                 });
 
-                // Detecção de Carimbos Inseridos no Texto
                 if (line.includes('{{CARIMBO_1}}') || line.includes('{{CARIMBO_2}}')) {
-                    // Se houver placeholders de carimbo na linha, o doc.y já avançou
-                    // Precisamos garantir espaço para eles se não renderizados ainda
                     doc.moveDown(4);
                 }
             }
 
-            // --- CARIMBOS NO FINAL ---
+            // --- CARIMBOS ---
             let posY = doc.y + 20;
             const carWidth = 160;
-            const carHeight = 80;
+            const carHeight = 85;
 
-            // Garante que carimbos caibam na página ou cria nova
             if (posY > doc.page.height - 180) {
-                // Se estiver quase no fim, espreme um pouco
-                if (posY > doc.page.height - 120) {
+                if (posY > doc.page.height - 140) {
                     doc.addPage();
                     posY = marginV + 20;
+                } else {
+                    posY = doc.page.height - 180; // Força no final da página atual se couber raspando
                 }
             }
 
@@ -149,10 +140,12 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 doc.image(carimbo2Buffer, targetX, posY, { fit: [carWidth, carHeight] });
             }
 
-            // --- RODAPÉ FIXO (ENDEREÇO) ---
+            // --- RODAPÉ FIXO ---
             if (footerCandidate) {
-                const totalPages = doc.bufferedPageCount;
-                doc.switchToPage(0); // Sempre na primeira página
+                // Cálculo robusto do número de páginas
+                const totalPageCount = doc.bufferedPageCount || (doc._pages ? doc._pages.length : 1);
+
+                doc.switchToPage(0); // Volta para a primeira página
 
                 doc.fontSize(8).fillColor('gray').font('Helvetica');
                 doc.text(footerCandidate, marginH, doc.page.height - 50, {
@@ -160,7 +153,10 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     width: doc.page.width - (marginH * 2)
                 });
 
-                doc.switchToPage(totalPages - 1);
+                // Retorna para a última página se necessário (para fechar o doc corretamente)
+                if (totalPageCount > 1 && !isNaN(totalPageCount)) {
+                    doc.switchToPage(totalPageCount - 1);
+                }
             }
 
             doc.end();
