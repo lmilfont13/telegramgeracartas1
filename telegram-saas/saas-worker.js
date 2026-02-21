@@ -3,6 +3,7 @@ const { createClient } = require('@supabase/supabase-js');
 const TelegramBot = require('node-telegram-bot-api');
 // Tenta carregar .env.local apenas localmente
 const fs = require('fs');
+const https = require('https');
 if (fs.existsSync('.env.local')) {
     require('dotenv').config({ path: '.env.local' });
 }
@@ -50,7 +51,11 @@ const STEPS = {
     SELECTING_LOJA: 'SELECTING_LOJA',
     SELECTING_POSITION: 'SELECTING_POSITION',
     AWAITING_CUSTOM_X: 'AWAITING_CUSTOM_X',
-    AWAITING_CUSTOM_Y: 'AWAITING_CUSTOM_Y'
+    AWAITING_CUSTOM_Y: 'AWAITING_CUSTOM_Y',
+    REG_COMP_NAME: 'REG_COMP_NAME',
+    REG_COMP_LOGO: 'REG_COMP_LOGO',
+    REG_COMP_STAMP: 'REG_COMP_STAMP',
+    REG_COMP_SIGNATURE: 'REG_COMP_SIGNATURE'
 };
 
 /**
@@ -93,6 +98,36 @@ async function downloadImageFromSupabase(publicUrl) {
     } catch (e) {
         console.error(`[Storage] Erro ao baixar imagem (${publicUrl}):`, e.message);
         return null;
+    }
+}
+
+/**
+ * Downloads from Telegram and uploads to Supabase
+ */
+async function uploadImageToBotSupabase(bot, fileId, bucket, fileName) {
+    try {
+        const link = await bot.getFileLink(fileId);
+
+        return new Promise((resolve, reject) => {
+            https.get(link, (res) => {
+                const chunks = [];
+                res.on('data', (chunk) => chunks.push(chunk));
+                res.on('end', async () => {
+                    const buffer = Buffer.from(Buffer.concat(chunks));
+                    const { error } = await supabase.storage
+                        .from(bucket)
+                        .upload(fileName, buffer, { upsert: true, contentType: 'image/png' });
+
+                    if (error) return reject(error);
+
+                    const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(fileName);
+                    resolve(publicUrl);
+                });
+            }).on('error', reject);
+        });
+    } catch (e) {
+        console.error(`[BotUpload] Erro:`, e.message);
+        throw e;
     }
 }
 
@@ -367,6 +402,19 @@ function startBot(botData) {
                 return bot.sendMessage(chatId, `🏓 **Pong!**\n\n🆔 Instância: \`${INSTANCE_ID}\`\n🕒 Uptime: ${Math.floor(uptime)}s\n💾 Memória: ${memUsed}MB\n🚀 Versão: ${process.version}`, { parse_mode: 'Markdown' });
             }
 
+            if (text === '/nova_empresa') {
+                state.step = STEPS.REG_COMP_NAME;
+                state.data = {};
+                return bot.sendMessage(chatId, "🏢 **Iniciando Cadastro de Nova Marca**\n\nQual o **Nome da Empresa**?");
+            }
+
+
+            // Se estiver definindo nome da nova empresa
+            if (state.step === STEPS.REG_COMP_NAME) {
+                state.data.regNome = text;
+                state.step = STEPS.REG_COMP_LOGO;
+                return bot.sendMessage(chatId, `Nome **${text}** definido.\n\n🖼️ Agora envie a imagem do **LOGOTIPO** (PNG transparente recomendado):`);
+            }
 
             // Se estiver selecionando LOJA (Texto Livre)
             if (state.step === STEPS.SELECTING_LOJA) {
@@ -471,6 +519,64 @@ function startBot(botData) {
                 // Se estiver em um passo mas mandou algo que não processamos
                 console.log(`[Bot ${botData.nome}] Mensagem ignorada no estado ${state.step}: "${text}"`);
                 // Opcional: Avisar o usuário dependendo do estado
+            }
+        });
+
+        // Handler para Fotos (Cadastro de Empresa)
+        bot.on('photo', async (msg) => {
+            const chatId = msg.chat.id;
+            if (!userStates[chatId]) return;
+            const state = userStates[chatId];
+            if (!state.isAuthenticated) return;
+
+            const photo = msg.photo[msg.photo.length - 1]; // Pega a maior versão
+            const fileId = photo.file_id;
+
+            try {
+                if (state.step === STEPS.REG_COMP_LOGO) {
+                    bot.sendMessage(chatId, "⏳ Subindo Logotipo...");
+                    const tempId = Math.random().toString(36).substring(7);
+                    const url = await uploadImageToBotSupabase(bot, fileId, 'logos', `bot_reg_${tempId}.png`);
+                    state.data.regLogo = url;
+                    state.step = STEPS.REG_COMP_STAMP;
+                    return bot.sendMessage(chatId, "✅ Logo recebida!\n\n🏢 Agora envie o **CARIMBO / CNPJ**:");
+                }
+
+                if (state.step === STEPS.REG_COMP_STAMP) {
+                    bot.sendMessage(chatId, "⏳ Subindo Carimbo...");
+                    const tempId = Math.random().toString(36).substring(7);
+                    const url = await uploadImageToBotSupabase(bot, fileId, 'carimbos', `bot_reg_stamp_${tempId}.png`);
+                    state.data.regStamp = url;
+                    state.step = STEPS.REG_COMP_SIGNATURE;
+                    return bot.sendMessage(chatId, "✅ Carimbo recebido!\n\n✍️ Por fim, envie a **ASSINATURA DIGITAL**:");
+                }
+
+                if (state.step === STEPS.REG_COMP_SIGNATURE) {
+                    bot.sendMessage(chatId, "⏳ Processando cadastro final...");
+                    const tempId = Math.random().toString(36).substring(7);
+                    const url = await uploadImageToBotSupabase(bot, fileId, 'carimbos', `bot_reg_sign_${tempId}.png`);
+
+                    // Salva no Banco
+                    const { data: newComp, error } = await supabase
+                        .from('empresas')
+                        .insert({
+                            nome: state.data.regNome,
+                            logo_url: state.data.regLogo,
+                            carimbo_url: state.data.regStamp,
+                            carimbo_funcionario_url: url
+                        })
+                        .select()
+                        .single();
+
+                    if (error) throw error;
+
+                    state.step = STEPS.IDLE;
+                    state.data = {};
+                    return bot.sendMessage(chatId, `🎉 **Empresa ${newComp.nome} cadastrada com sucesso!**\n\nAgora você já pode selecioná-la ao iniciar com /start.`);
+                }
+            } catch (e) {
+                console.error("[BotPhoto] Erro:", e.message);
+                bot.sendMessage(chatId, "❌ Erro ao processar imagem. Tente enviar novamente.");
             }
         });
 
