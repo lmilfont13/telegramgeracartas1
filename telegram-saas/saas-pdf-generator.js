@@ -29,29 +29,40 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
     // Parâmetros iniciais de busca do "tamanho ideal"
     let fontSize = 11.5;
     let lineGap = 1.2;
+    let stampScale = 1.0;
+    let logoScale = 1.0;
     let attempt = 1;
 
     // Função interna para tentar renderizar e validar página única
-    async function tryRender(fs, lg) {
+    async function tryRender(fs, lg, ss, ls) {
         return new Promise((resolve, reject) => {
             try {
                 const doc = new PDFDocument({
                     size: 'A4',
-                    margins: { top: compact ? 15 : 25, bottom: 25, left: 60, right: 60 },
+                    margins: { top: (compact ? 15 : 25) * ls, bottom: 25, left: 60, right: 60 },
                     bufferPages: true
+                });
+
+                // --- ESTRATÉGIA ZERO-OVERFLOW ---
+                // Se o PDFKit tentar adicionar uma segunda página, abortamos na hora e reduzimos tudo.
+                doc.on('pageAdded', () => {
+                    reject(new Error('OVERFLOW'));
                 });
 
                 const chunks = [];
                 doc.on('data', (chunk) => chunks.push(chunk));
-                doc.on('end', () => resolve({ buffer: Buffer.concat(chunks), pages: doc.bufferedPageCount }));
-                doc.on('error', reject);
+                doc.on('end', () => resolve(Buffer.concat(chunks)));
+                doc.on('error', (err) => {
+                    if (err.message === 'OVERFLOW') return; // Ignora erro de overflow, o loop tratará
+                    reject(err);
+                });
 
                 const mH = 60;
                 const pageWidth = doc.page.width;
                 const pageHeight = doc.page.height;
                 const textWidth = pageWidth - (mH * 2);
-                const carHeight = compact ? 75 : 85;
-                const carWidth = compact ? 135 : 155;
+                const carHeight = (compact ? 75 : 85) * ss;
+                const carWidth = (compact ? 135 : 155) * ss;
 
                 // --- 1. PREPARAÇÃO DO TEXTO E RODAPÉ ---
                 let footerText = "";
@@ -70,19 +81,19 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     }
                 }
 
-                const startY = compact ? 75 : 105;
+                const startY = (compact ? 70 : 100) * ls;
                 const footerY = pageHeight - 35;
 
                 // --- 2. RENDERIZAÇÃO ---
                 // Logo
                 if (logoBuffer) {
-                    try { doc.image(logoBuffer, mH, 25, { width: 105 }); } catch (e) { }
+                    try { doc.image(logoBuffer, mH, 20 * ls, { width: 100 * ls }); } catch (e) { }
                 }
                 // Data
                 const months = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
                 const now = new Date();
                 const dateStr = `Data de emissão: ${now.getDate()} DE ${months[now.getMonth()]} DE ${now.getFullYear()}`;
-                doc.font('Helvetica-Bold').fontSize(8.5).text(dateStr, mH, 40, { align: 'right' });
+                doc.font('Helvetica-Bold').fontSize(max(7, fs * 0.75)).text(dateStr, mH, 35 * ls, { align: 'right' });
 
                 doc.y = startY;
                 doc.fontSize(fs).font('Helvetica');
@@ -96,7 +107,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     const hasStamp = untrimmed.match(/\{\{\s*(CARIMBO_[12])\s*\}\}/i);
 
                     if (trimmed === '') {
-                        doc.y += (fs * 0.35);
+                        doc.y += (fs * 0.3);
                         return;
                     }
 
@@ -131,10 +142,10 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     }
 
                     if (trimmed.startsWith('#')) {
-                        doc.font('Helvetica-Bold').fontSize(fs + 1.2)
+                        doc.font('Helvetica-Bold').fontSize(fs + 1.1)
                             .text(trimmed.replace(/^#+\s*/, ''), { align: 'left' });
                         doc.font('Helvetica').fontSize(fs);
-                        doc.y += 1.0;
+                        doc.y += 0.8;
                         return;
                     }
 
@@ -149,7 +160,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     let textToRender = untrimmed.replace(/\{\{\s*CARIMBO_[12]\s*\}\}/gi, '');
 
                     if (textToRender.trim() === '' && hasStamp) {
-                        doc.y += carHeight + 2;
+                        doc.y += carHeight + 1;
                         return;
                     }
 
@@ -169,14 +180,14 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     });
 
                     if (hasStamp) {
-                        doc.y = Math.max(doc.y, currentY + carHeight + 2);
+                        doc.y = Math.max(doc.y, currentY + carHeight + 1);
                     } else {
-                        doc.y += 1.0;
+                        doc.y += 0.8;
                     }
                 });
 
                 if ((!renderedCar1 && carimbo1Buffer) || (!renderedCar2 && carimbo2Buffer)) {
-                    let finalY = Math.max(doc.y + 10, footerY - carHeight - 5);
+                    let finalY = Math.max(doc.y + 5, footerY - carHeight - 5);
                     if (!renderedCar1 && carimbo1Buffer) {
                         doc.image(carimbo1Buffer, mH, finalY, { fit: [carWidth, carHeight] });
                     }
@@ -190,25 +201,38 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     doc.text(footerText, mH, footerY, { align: 'center', width: pageWidth - (mH * 2) });
                 }
 
-                doc.fontSize(4).fillColor('#eeeeee').text(`v4.0.Rec-${attempt}-${new Date().toISOString()}`, 10, pageHeight - 10);
+                doc.fontSize(4).fillColor('#eeeeee').text(`v4.1.Zero-Att-${attempt}-${new Date().toISOString()}`, 10, pageHeight - 10);
                 doc.end();
             } catch (error) { reject(error); }
         });
     }
 
-    // --- LOOP RECURSIVO DE TENTATIVAS ---
-    let result = await tryRender(fontSize, lineGap);
-
-    while (result.pages > 1 && fontSize > 4.5) {
-        attempt++;
-        fontSize -= 0.5;
-        lineGap -= 0.2;
-        if (lineGap < -4.0) lineGap = -4.0;
-        console.log(`[PDFGen v4] Tentativa ${attempt}: Encolhendo para ${fontSize}pt...`);
-        result = await tryRender(fontSize, lineGap);
+    // --- LOOP RECURSIVO DE TENTATIVAS (ZERO OVERFLOW) ---
+    while (attempt < 15) {
+        try {
+            console.log(`[PDFGen v4.1] Tentativa ${attempt}: Font=${fontSize}pt, Gap=${lineGap}, Stamp=${stampScale}`);
+            const buffer = await tryRender(fontSize, lineGap, stampScale, logoScale);
+            return buffer; // Se chegou aqui, deu certo e ficou em uma página!
+        } catch (err) {
+            if (err.message === 'OVERFLOW') {
+                attempt++;
+                fontSize -= 0.6;
+                lineGap -= 0.25;
+                if (fontSize < 7.5) stampScale -= 0.05; // Encolhe carimbo se a letra ficar muito pequena
+                if (fontSize < 6.5) logoScale -= 0.05; // Encolhe logo se for extremo
+                if (lineGap < -4.5) lineGap = -4.5;
+                if (fontSize < 3.5) fontSize = 3.5;
+                if (stampScale < 0.6) stampScale = 0.6;
+                continue;
+            }
+            throw err; // Outros erros
+        }
     }
 
-    return result.buffer;
+    // Fallback final se nada der certo (o que não deve acontecer com fs=3.5)
+    return await tryRender(3.5, -4.5, 0.6, 0.6);
 }
+
+function max(a, b) { return a > b ? a : b; }
 
 module.exports = { generateSaaSPDF };

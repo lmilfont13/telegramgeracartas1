@@ -564,16 +564,8 @@ function startBot(botData) {
             }
         });
 
-        // Handler para Fotos (Cadastro de Empresa)
-        bot.on('photo', async (msg) => {
-            const chatId = msg.chat.id;
-            if (!userStates[chatId]) return;
-            const state = userStates[chatId];
-            if (!state.isAuthenticated) return;
-
-            const photo = msg.photo[msg.photo.length - 1]; // Pega a maior versão
-            const fileId = photo.file_id;
-
+        // Função auxiliar para processar imagens de cadastro (Foto ou Documento)
+        async function processRegistrationImage(chatId, fileId, state, botData) {
             try {
                 if (state.step === STEPS.REG_COMP_LOGO) {
                     console.log(`[Bot ${botData.nome}] Recebendo Logo para Chat ${chatId}`);
@@ -626,16 +618,47 @@ function startBot(botData) {
                         .select()
                         .single();
 
-                    if (error) throw error;
+                    if (error) {
+                        console.error("[BotReg] Erro Supabase:", error.message, error.details);
+                        throw new Error(`Erro no Banco: ${error.message} (${error.details || 'sem detalhes'})`);
+                    }
 
                     state.step = STEPS.IDLE;
                     state.data = {};
                     return bot.sendMessage(chatId, `🎉 **Empresa ${newComp.nome} cadastrada com sucesso!**\n\nAgora use **/start** para iniciar. Ela já herdou o banco de **${lojasToInherit.length} lojas** existentes e busca em nossa base global de funcionários.`);
                 }
             } catch (e) {
-                console.error("[BotPhoto] Erro:", e.message);
-                bot.sendMessage(chatId, "❌ Erro ao processar imagem. Tente enviar novamente.");
+                console.error("[BotReg] Erro Geral:", e.message);
+                bot.sendMessage(chatId, `❌ Falha no processamento:\n\n${e.message}\n\nTente enviar novamente.`);
             }
+        }
+
+        // Handler para Fotos
+        bot.on('photo', async (msg) => {
+            const chatId = msg.chat.id;
+            if (!userStates[chatId] || !userStates[chatId].isAuthenticated) return;
+            const state = userStates[chatId];
+            const photo = msg.photo[msg.photo.length - 1];
+            await processRegistrationImage(chatId, photo.file_id, state, botData);
+        });
+
+        // Handler para Documentos (Arquivos sem compressão)
+        bot.on('document', async (msg) => {
+            const chatId = msg.chat.id;
+            if (!userStates[chatId] || !userStates[chatId].isAuthenticated) return;
+            const state = userStates[chatId];
+
+            // Só processa se estiver no fluxo de imagens de cadastro
+            const isRegStep = [STEPS.REG_COMP_LOGO, STEPS.REG_COMP_STAMP, STEPS.REG_COMP_SIGNATURE].includes(state.step);
+            if (!isRegStep) return;
+
+            // Verifica se é imagem
+            const mime = msg.document.mime_type || '';
+            if (!mime.startsWith('image/')) {
+                return bot.sendMessage(chatId, "⚠️ Por favor, envie o arquivo como uma **imagem**.");
+            }
+
+            await processRegistrationImage(chatId, msg.document.file_id, state, botData);
         });
 
         // Lógica de Cliques nos Botões (Callback Query)
@@ -731,6 +754,37 @@ function startBot(botData) {
                     parse_mode: 'Markdown',
                     reply_markup: { inline_keyboard: buttons }
                 });
+            }
+
+            // 4. Navegação Pós-Geração
+            if (type === 'm') {
+                bot.answerCallbackQuery(query.id);
+                if (value === 'nova') {
+                    // Se já tiver empresaId, volta para a busca de funcionário
+                    if (state.data.empresaId) {
+                        state.step = STEPS.IDLE;
+                        const nomeEmpresa = state.data.nome_empresa || 'Selecionada';
+                        return bot.sendMessage(chatId, `🏢 Mantendo empresa **${nomeEmpresa}**.\n\n🔍 Digite o **nome do funcionário** para buscar:`, { parse_mode: 'Markdown' });
+                    } else {
+                        // Se não tiver, volta pro start
+                        return bot.sendMessage(chatId, "Use /start para começar.");
+                    }
+                }
+                if (value === 'inicio') {
+                    state.step = STEPS.SELECTING_COMPANY;
+                    state.data = {};
+
+                    const { data: empresas } = await supabase.from('empresas').select('id, nome').order('nome');
+                    if (!empresas || empresas.length === 0) {
+                        return bot.sendMessage(chatId, "❌ Nenhuma empresa cadastrada.");
+                    }
+
+                    const buttons = empresas.map(emp => ([{ text: emp.nome, callback_data: `e:${emp.id}` }]));
+                    return bot.sendMessage(chatId, `🏢 **Selecione a Empresa** para iniciar:`, {
+                        parse_mode: 'Markdown',
+                        reply_markup: { inline_keyboard: buttons }
+                    });
+                }
             }
         });
 
@@ -858,9 +912,18 @@ async function generateAndSendPDF(bot, chatId, data, botData) {
             compact: empresa.nome.toLowerCase().includes('atacad') // Modo compacto para Atacadão
         });
 
-        // 6. Envio
+        // 6. Envio com botões de navegação
+        const caption = `✅ Carta de **${nomeExibicao}** gerada com sucesso!\n\n💡 **Dica**: Para compartilhar com outros aplicativos (WhatsApp, E-mail, etc), clique no arquivo e use o ícone de compartilhar do Telegram.`;
+
+        const buttons = [
+            [{ text: "📄 Gerar outra carta", callback_data: "m:nova" }],
+            [{ text: "🏠 Menu Principal", callback_data: "m:inicio" }]
+        ];
+
         await bot.sendDocument(chatId, pdfBuffer, {
-            caption: `✅ Carta de **${nomeExibicao}** gerada com sucesso!`
+            caption,
+            parse_mode: 'Markdown',
+            reply_markup: { inline_keyboard: buttons }
         }, {
             filename: `Carta_${nomeExibicao.replace(/\s+/g, '_')}.pdf`,
             contentType: 'application/pdf'
