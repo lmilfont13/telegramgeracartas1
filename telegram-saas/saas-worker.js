@@ -547,7 +547,7 @@ function startBot(botData) {
                     if (foundInExtras && foundInExtras.length > 0) {
                         return handleResults(bot, chatId, foundInExtras, botData);
                     }
-                    return bot.sendMessage(chatId, `❌ Nenhum funcionário encontrado com "${text}" na empresa selecionada.`);
+                    return bot.sendMessage(chatId, `❌ Nenhum funcionário encontrado com "${text}" em nosso banco global.`);
                 }
 
                 // Se encontrou, processa
@@ -576,27 +576,33 @@ function startBot(botData) {
 
             try {
                 if (state.step === STEPS.REG_COMP_LOGO) {
+                    console.log(`[Bot ${botData.nome}] Recebendo Logo para Chat ${chatId}`);
                     bot.sendMessage(chatId, "⏳ Subindo Logotipo...");
                     const tempId = Math.random().toString(36).substring(7);
                     const url = await uploadImageToBotSupabase(bot, fileId, 'logos', `bot_reg_${tempId}.png`);
                     state.data.regLogo = url;
                     state.step = STEPS.REG_COMP_STAMP;
+                    console.log(`[Bot ${botData.nome}] Logo salva: ${url}`);
                     return bot.sendMessage(chatId, "✅ Logo recebida!\n\n🏢 Agora envie o **CARIMBO / CNPJ**:");
                 }
 
                 if (state.step === STEPS.REG_COMP_STAMP) {
+                    console.log(`[Bot ${botData.nome}] Recebendo Carimbo para Chat ${chatId}`);
                     bot.sendMessage(chatId, "⏳ Subindo Carimbo...");
                     const tempId = Math.random().toString(36).substring(7);
                     const url = await uploadImageToBotSupabase(bot, fileId, 'carimbos', `bot_reg_stamp_${tempId}.png`);
                     state.data.regStamp = url;
                     state.step = STEPS.REG_COMP_SIGNATURE;
+                    console.log(`[Bot ${botData.nome}] Carimbo salvo: ${url}`);
                     return bot.sendMessage(chatId, "✅ Carimbo recebido!\n\n✍️ Por fim, envie a **ASSINATURA DIGITAL**:");
                 }
 
                 if (state.step === STEPS.REG_COMP_SIGNATURE) {
+                    console.log(`[Bot ${botData.nome}] Recebendo Assinatura para Chat ${chatId}`);
                     bot.sendMessage(chatId, "⏳ Processando cadastro final...");
                     const tempId = Math.random().toString(36).substring(7);
                     const url = await uploadImageToBotSupabase(bot, fileId, 'carimbos', `bot_reg_sign_${tempId}.png`);
+                    console.log(`[Bot ${botData.nome}] Assinatura salva: ${url}`);
 
                     // 1. Busca um banco de lojas existente para herdar
                     const { data: existingComps } = await supabase
@@ -624,7 +630,7 @@ function startBot(botData) {
 
                     state.step = STEPS.IDLE;
                     state.data = {};
-                    return bot.sendMessage(chatId, `🎉 **Empresa ${newComp.nome} cadastrada com sucesso!**\n\nEla já herdou o banco de **${lojasToInherit.length} lojas** existentes e os funcionários globais já podem ser usados.`);
+                    return bot.sendMessage(chatId, `🎉 **Empresa ${newComp.nome} cadastrada com sucesso!**\n\nAgora use **/start** para iniciar. Ela já herdou o banco de **${lojasToInherit.length} lojas** existentes e busca em nossa base global de funcionários.`);
                 }
             } catch (e) {
                 console.error("[BotPhoto] Erro:", e.message);

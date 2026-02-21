@@ -30,7 +30,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
         try {
             const doc = new PDFDocument({
                 size: 'A4',
-                margins: { top: 25, bottom: 25, left: 60, right: 60 },
+                margins: { top: compact ? 15 : 25, bottom: 25, left: 60, right: 60 },
                 bufferPages: true
             });
 
@@ -39,13 +39,12 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             doc.on('end', () => resolve(Buffer.concat(chunks)));
             doc.on('error', reject);
 
-            const mH = 65;
-            const mV = 25;
+            const mH = 60;
             const pageWidth = doc.page.width;
             const pageHeight = doc.page.height;
             const textWidth = pageWidth - (mH * 2);
-            const carHeight = 85;
-            const carWidth = 155;
+            const carHeight = compact ? 75 : 85;
+            const carWidth = compact ? 135 : 155;
 
             // --- 1. PREPARAÇÃO DO TEXTO E RODAPÉ ---
             let footerText = "";
@@ -60,54 +59,47 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 if (line.match(/(Rua Demóstenes|CEP 04614-013|São Paulo - SP|Terceirização|POP TRADE)/i) && i > rawLines.length - 8) {
                     footerText = line;
                 } else {
-                    bodyLines.push(rawLines[i]); // Mantemos a linha original (com espaços iniciais se houver)
+                    bodyLines.push(rawLines[i]);
                 }
             }
 
             // --- 2. CÁLCULO DE ESPAÇO E ESCALONAMENTO ---
-            const startY = 120;
-            const footerY = pageHeight - 45;
-            const minStampsSpace = carHeight + 15;
-            const availableHeight = footerY - startY - 10;
+            const startY = compact ? 80 : 110;
+            const footerY = pageHeight - 40;
+            const minStampsSpace = carHeight + 10;
+            const availableHeight = footerY - startY - 5;
 
             const estimateHeight = (fs, lg) => {
                 let h = 0;
                 bodyLines.forEach(line => {
                     const t = line.trim();
                     if (t === '') {
-                        h += (fs * 0.6);
+                        h += (fs * 0.5);
                     } else if (t.match(/\{\{\s*CARIMBO_[12]\s*\}\}/i)) {
-                        h += carHeight + 15;
+                        h += carHeight + 8;
                     } else {
                         const lineH = doc.fontSize(fs).heightOfString(t, {
                             width: textWidth,
                             align: 'justify',
                             lineGap: lg,
-                            indent: (t.length > 50 && !t.match(/^(AS LOJA|A\/C\.:|Ref\.:|Atenciosamente,)/i)) ? 35 : 0
+                            indent: (t.length > 50 && !t.match(/^(AS LOJA|A\/C\.:|Ref\.:|Atenciosamente,)/i)) ? 25 : 0
                         });
-                        h += lineH + 3.5;
+                        h += lineH + 1.5;
                     }
                 });
-                return h;
+                return h * 1.05;
             };
 
             let fontSize = 11.5;
-            let lineGap = 1.5;
+            let lineGap = 1.2;
             let totalH = estimateHeight(fontSize, lineGap);
 
-            while (totalH + minStampsSpace > availableHeight && fontSize > 7.5) {
-                fontSize -= 0.5;
-                lineGap -= 0.3;
-                if (lineGap < -1.5) lineGap = -1.5;
+            // Loop ultra agressivo para caber em uma página
+            while (totalH + minStampsSpace > availableHeight && fontSize > 6.5) {
+                fontSize -= 0.2;
+                lineGap -= 0.1;
+                if (lineGap < -2.0) lineGap = -2.0;
                 totalH = estimateHeight(fontSize, lineGap);
-            }
-
-            if (totalH + minStampsSpace < (availableHeight * 0.70)) {
-                while (totalH + minStampsSpace < (availableHeight * 0.88) && fontSize < 14.5) {
-                    fontSize += 0.25;
-                    lineGap += 0.25;
-                    totalH = estimateHeight(fontSize, lineGap);
-                }
             }
 
             // --- 3. RENDERIZAÇÃO ---
