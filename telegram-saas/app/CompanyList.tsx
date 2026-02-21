@@ -63,7 +63,7 @@ export default function CompanyList({ initialCompanies }: { initialCompanies: Em
 
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                                 <a
-                                    href={`/bot/config/${c.id}`}
+                                    href={`/empresa/${c.id}`}
                                     className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                                     title="Configurar Logo e Carimbos"
                                 >

@@ -211,3 +211,27 @@ export async function deleteTemplate(formData: FormData) {
         return { error: e.message }
     }
 }
+
+export async function updateCompanyLojas(formData: FormData) {
+    const supabase = await createClient()
+    const empresaId = formData.get('empresa_id') as string
+    const lojasJson = formData.get('lojas') as string
+
+    if (!empresaId) return { error: 'ID da empresa não fornecido.' }
+
+    try {
+        const lojas = JSON.parse(lojasJson)
+        const { error } = await supabase
+            .from('empresas')
+            .update({ lojas: lojas })
+            .eq('id', empresaId)
+
+        if (error) throw error
+
+        revalidatePath(`/empresa/${empresaId}`)
+        return { success: 'Lista de lojas atualizada!' }
+    } catch (e: any) {
+        console.error('[UpdateLojas] Erro:', e)
+        return { error: 'Erro ao salvar lojas: ' + e.message }
+    }
+}

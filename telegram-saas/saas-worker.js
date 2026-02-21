@@ -465,6 +465,11 @@ function startBot(botData) {
 
             const [type, value] = data.split(':');
 
+            // Proteção de Autenticação para Callbacks
+            if (!state.isAuthenticated) {
+                return bot.answerCallbackQuery(query.id, { text: "🔐 Por favor, informe a senha primeiro.", show_alert: true });
+            }
+
             // 1. Seleção de Empresa (Agora é o PRIMEIRO passo)
             if (type === 'e') {
                 // Salva a empresa selecionada
@@ -504,6 +509,27 @@ function startBot(botData) {
                 state.data.customCoords = null;
                 bot.answerCallbackQuery(query.id);
                 return generateAndSendPDF(bot, chatId, state.data, botData);
+            }
+
+            // 3. Seleção de Loja Predefinida
+            if (type === 'l') {
+                state.data.loja_selecionada = value;
+                state.step = STEPS.SELECTING_TEMPLATE;
+
+                const empresaId = state.data.empresaId;
+                const { data: templates } = await supabase.from('templates').select('id, nome').or(`empresa_id.eq.${empresaId},empresa_id.is.null`);
+
+                bot.answerCallbackQuery(query.id);
+
+                if (!templates || templates.length === 0) {
+                    return bot.sendMessage(chatId, `❌ Nenhum modelo de carta encontrado.`);
+                }
+
+                const buttons = templates.map(t => ([{ text: `📄 ${t.nome}`, callback_data: `t:${t.id}` }]));
+                return bot.sendMessage(chatId, `Loja **${value}** selecionada.\n\nEscolha o **Modelo da Carta**:`, {
+                    parse_mode: 'Markdown',
+                    reply_markup: { inline_keyboard: buttons }
+                });
             }
         });
 
@@ -552,6 +578,7 @@ async function handleResults(bot, chatId, results, botData) {
 
         // Inicia fluxo interativo - AGORA PERGUNTA A LOJA PRIMEIRO
         userStates[chatId] = {
+            ...userStates[chatId], // Preserva isAuthenticated e outros metadados
             step: STEPS.SELECTING_LOJA,
             data: {
                 ...userStates[chatId].data,
@@ -559,6 +586,18 @@ async function handleResults(bot, chatId, results, botData) {
                 nomeExibicao
             }
         };
+
+        // Busca lojas predefinidas da empresa
+        const { data: empresa } = await supabase.from('empresas').select('lojas').eq('id', funcionario.empresa_id).single();
+        const lojas = empresa?.lojas || [];
+
+        if (lojas.length > 0) {
+            const buttons = lojas.map(loja => ([{ text: `📍 ${loja}`, callback_data: `l:${loja}` }]));
+            return bot.sendMessage(chatId, `Funcionário encontrado: **${nomeExibicao}**.\n\n📍 Selecione a **LOJA / UNIDADE** abaixo ou digite o nome caso não esteja na lista:`, {
+                parse_mode: 'Markdown',
+                reply_markup: { inline_keyboard: buttons }
+            });
+        }
 
         return bot.sendMessage(chatId, `Funcionário encontrado: **${nomeExibicao}**.\n\n📍 Para qual **LOJA / UNIDADE** deseja gerar esta carta?\n\n(Digite o nome da loja abaixo)`);
     }
@@ -635,16 +674,24 @@ async function generateAndSendPDF(bot, chatId, data, botData) {
             console.error(`[Bot ${botData.nome}] Erro ao salvar histórico:`, dbErr);
         }
 
-        // Limpa estado
-        userStates[chatId] = { step: STEPS.IDLE, data: {} };
+        // Limpa estado, mas mantém autenticação
+        userStates[chatId] = {
+            ...userStates[chatId],
+            step: STEPS.IDLE,
+            data: {}
+        };
 
     } catch (e) {
         console.error(`[Bot ${botData.nome}] Erro na geração final:`, e);
         // Envia o erro DETALHADO para o usuário (para facilitar debug)
         bot.sendMessage(chatId, `❌ Erro ao gerar PDF:\n\n${e.message}\n\n(Tente novamente com /start)`);
 
-        // Limpa estado para evitar travar o usuário
-        userStates[chatId] = { step: STEPS.IDLE, data: {} };
+        // Limpa estado para evitar travar o usuário, mas mantém autenticação
+        userStates[chatId] = {
+            ...userStates[chatId],
+            step: STEPS.IDLE,
+            data: {}
+        };
     }
 }
 

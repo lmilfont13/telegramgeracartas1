@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { updateBot, updateToken } from "./actions";
 import ImageUpload from "./ImageUpload";
 import TemplateEditor from "./TemplateEditor";
+import StoreManagement from "../../../empresa/[id]/StoreManagement";
 import EmployeeUploadInteractive from "./EmployeeUploadInteractive";
 import { uploadLogo, uploadCarimbo, uploadCarimboFuncionario } from "./upload-images";
 
@@ -28,7 +29,7 @@ export default async function BotPage({ params }: { params: Promise<{ id: string
     }
 
     // Buscar dados da empresa (logo e carimbos)
-    const { data: empresa } = await supabase.from('empresas').select('logo_url, carimbo_url, carimbo_funcionario_url').eq('id', bot.empresa_id).single();
+    const { data: empresa } = await supabase.from('empresas').select('lojas, logo_url, carimbo_url, carimbo_funcionario_url').eq('id', bot.empresa_id).single();
 
     // Buscar template
     const { data: template } = await supabase.from('templates').select('*').eq('empresa_id', bot.empresa_id).maybeSingle();
@@ -140,6 +141,9 @@ export default async function BotPage({ params }: { params: Promise<{ id: string
                         buttonColor="bg-purple-600"
                     />
 
+                    {/* Gestão de Lojas */}
+                    <StoreManagement empresaId={bot.empresa_id} initialLojas={empresa?.lojas || []} />
+
                     {/* Template da Carta */}
                     <TemplateEditor
                         botId={bot.id}
@@ -159,7 +163,6 @@ export default async function BotPage({ params }: { params: Promise<{ id: string
 
                         <div className="mt-8">
                             <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Últimos Importados</h3>
-                            {/* @ts-expect-error Async Server Component */}
                             <EmployeeList botId={bot.id} />
                         </div>
                     </div>

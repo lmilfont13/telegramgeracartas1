@@ -2,7 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import CompanyImageUpload from "./CompanyImageUpload";
 import { uploadCompanyLogo, uploadCompanyCarimbo, uploadCompanyCarimboFuncionario, clearCompanyAsset } from "./upload-actions";
-import { ChevronLeft, Building2, Users, Image as ImageIcon, Briefcase, Calendar, Save, FileText } from "lucide-react";
+import StoreManagement from "./StoreManagement";
+import { ChevronLeft, Building2, Users, Image as ImageIcon, Briefcase, Calendar, Save, FileText, Store } from "lucide-react";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -148,6 +149,15 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
                                 </div>
                             </div>
                         </div>
+                    </section>
+
+                    {/* Seção Gestão de Lojas */}
+                    <section className="space-y-6">
+                        <div className="flex items-center gap-2 border-b border-gray-100 pb-2">
+                            <Store className="h-5 w-5 text-blue-600" />
+                            <h2 className="text-xl font-bold">Gestão de Lojas</h2>
+                        </div>
+                        <StoreManagement empresaId={empresaId} initialLojas={empresa.lojas || []} />
                     </section>
 
                     {/* Seção Identidade Visual */}
