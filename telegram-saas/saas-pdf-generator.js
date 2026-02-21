@@ -64,54 +64,54 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             }
 
             // --- 2. CÁLCULO DE ESPAÇO E ESCALONAMENTO ---
-            const startY = compact ? 80 : 110;
-            const footerY = pageHeight - 40;
-            const minStampsSpace = carHeight + 10;
-            const availableHeight = footerY - startY - 5;
+            const startY = compact ? 75 : 105;
+            const footerY = pageHeight - 35;
+            const minStampsSpace = carHeight + 5;
+            const availableHeight = footerY - startY - 2;
 
             const estimateHeight = (fs, lg) => {
                 let h = 0;
                 bodyLines.forEach(line => {
                     const t = line.trim();
                     if (t === '') {
-                        h += (fs * 0.5);
+                        h += (fs * 0.4);
                     } else if (t.match(/\{\{\s*CARIMBO_[12]\s*\}\}/i)) {
-                        h += carHeight + 8;
+                        h += carHeight + 4;
                     } else {
                         const lineH = doc.fontSize(fs).heightOfString(t, {
                             width: textWidth,
                             align: 'justify',
                             lineGap: lg,
-                            indent: (t.length > 50 && !t.match(/^(AS LOJA|A\/C\.:|Ref\.:|Atenciosamente,)/i)) ? 25 : 0
+                            indent: (t.length > 55 && !t.match(/^(AS LOJA|A\/C\.:|Ref\.:|Atenciosamente,)/i)) ? 25 : 0
                         });
-                        h += lineH + 1.5;
+                        h += lineH + 1.2;
                     }
                 });
-                return h * 1.05;
+                return h * 1.08; // 8% de margem de segurança
             };
 
             let fontSize = 11.5;
             let lineGap = 1.2;
             let totalH = estimateHeight(fontSize, lineGap);
 
-            // Loop ultra agressivo para caber em uma página
-            while (totalH + minStampsSpace > availableHeight && fontSize > 6.5) {
+            // Loop ultra agressivo (v3.2)
+            while (totalH + minStampsSpace > availableHeight && fontSize > 5.0) {
                 fontSize -= 0.2;
-                lineGap -= 0.1;
-                if (lineGap < -2.0) lineGap = -2.0;
+                lineGap -= 0.15;
+                if (lineGap < -3.0) lineGap = -3.0;
                 totalH = estimateHeight(fontSize, lineGap);
             }
 
             // --- 3. RENDERIZAÇÃO ---
             // Logo
             if (logoBuffer) {
-                try { doc.image(logoBuffer, mH, 30, { width: 110 }); } catch (e) { }
+                try { doc.image(logoBuffer, mH, 25, { width: 105 }); } catch (e) { }
             }
             // Data
             const months = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
             const now = new Date();
             const dateStr = `Data de emissão: ${now.getDate()} DE ${months[now.getMonth()]} DE ${now.getFullYear()}`;
-            doc.font('Helvetica-Bold').fontSize(9).text(dateStr, mH, 45, { align: 'right' });
+            doc.font('Helvetica-Bold').fontSize(8.5).text(dateStr, mH, 40, { align: 'right' });
 
             doc.y = startY;
             doc.fontSize(fontSize).font('Helvetica');
@@ -125,7 +125,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 const hasStamp = untrimmed.match(/\{\{\s*(CARIMBO_[12])\s*\}\}/i);
 
                 if (trimmed === '') {
-                    doc.moveDown(0.5);
+                    doc.y += (fontSize * 0.4);
                     return;
                 }
 
@@ -143,15 +143,14 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                         const buffer = m.key === 'CARIMBO_1' ? carimbo1Buffer : carimbo2Buffer;
                         if (!buffer) return;
 
-                        // Lógica de Posicionamento Horizontal REAL baseada no index
-                        let targetX = mH; // Default: Esquerda
+                        let targetX = mH;
                         const lineLen = untrimmed.length;
                         const posPercent = m.index / lineLen;
 
                         if (posPercent > 0.6) {
-                            targetX = pageWidth - mH - carWidth; // Direita
+                            targetX = pageWidth - mH - carWidth;
                         } else if (posPercent > 0.3) {
-                            targetX = (pageWidth / 2) - (carWidth / 2); // Centro
+                            targetX = (pageWidth / 2) - (carWidth / 2);
                         }
 
                         doc.image(buffer, targetX, currentY, { fit: [carWidth, carHeight] });
@@ -162,10 +161,10 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 }
 
                 if (trimmed.startsWith('#')) {
-                    doc.font('Helvetica-Bold').fontSize(fontSize + 1.5)
-                        .text(trimmed.replace(/^#+\s*/, ''), { align: 'left' })
-                        .moveDown(0.3);
+                    doc.font('Helvetica-Bold').fontSize(fontSize + 1.2)
+                        .text(trimmed.replace(/^#+\s*/, ''), { align: 'left' });
                     doc.font('Helvetica').fontSize(fontSize);
+                    doc.y += 1.2;
                     return;
                 }
 
@@ -173,14 +172,14 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 const shouldJustify = !isHeading && trimmed.length > 55;
                 const options = {
                     align: shouldJustify ? 'justify' : 'left',
-                    indent: (!isHeading && trimmed.length > 55) ? 35 : 0,
+                    indent: shouldJustify ? 25 : 0,
                     lineGap: lineGap
                 };
 
                 let textToRender = untrimmed.replace(/\{\{\s*CARIMBO_[12]\s*\}\}/gi, '');
 
                 if (textToRender.trim() === '' && hasStamp) {
-                    doc.y += carHeight + 15;
+                    doc.y += carHeight + 4;
                     return;
                 }
 
@@ -200,16 +199,16 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                 });
 
                 if (hasStamp) {
-                    doc.y = Math.max(doc.y, currentY + carHeight + 15);
+                    doc.y = Math.max(doc.y, currentY + carHeight + 4);
                 } else {
-                    doc.moveDown(0.4);
+                    doc.y += 1.2;
                 }
             });
 
             if (doc.bufferedPageCount > 1) doc.switchToPage(0);
 
             if ((!renderedCar1 && carimbo1Buffer) || (!renderedCar2 && carimbo2Buffer)) {
-                let finalY = Math.max(doc.y + 25, footerY - carHeight - 20);
+                let finalY = Math.max(doc.y + 15, footerY - carHeight - 10);
                 if (!renderedCar1 && carimbo1Buffer) {
                     doc.image(carimbo1Buffer, mH, finalY, { fit: [carWidth, carHeight] });
                 }
@@ -219,15 +218,15 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             }
 
             if (footerText) {
-                doc.fontSize(8.5).fillColor('gray').font('Helvetica');
+                doc.fontSize(8.0).fillColor('gray').font('Helvetica');
                 doc.text(footerText, mH, footerY, {
                     align: 'center',
                     width: pageWidth - (mH * 2)
                 });
             }
 
-            // Version Indicator (Very small, bottom left)
-            doc.fontSize(4).fillColor('#eeeeee').text(`v3.1-${new Date().toISOString()}`, 10, pageHeight - 10);
+            // Version Indicator (v3.2)
+            doc.fontSize(4).fillColor('#eeeeee').text(`v3.2-${new Date().toISOString()}`, 10, pageHeight - 10);
 
             doc.end();
         } catch (error) {
