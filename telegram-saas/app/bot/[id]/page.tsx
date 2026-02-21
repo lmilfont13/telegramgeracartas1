@@ -4,7 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { updateBot, updateToken } from "./actions";
 import ImageUpload from "./ImageUpload";
 import TemplateEditor from "./TemplateEditor";
-import StoreManagement from "../../../empresa/[id]/StoreManagement";
+import StoreManagement from "../../empresa/[id]/StoreManagement";
 import EmployeeUploadInteractive from "./EmployeeUploadInteractive";
 import { uploadLogo, uploadCarimbo, uploadCarimboFuncionario } from "./upload-images";
 
@@ -75,7 +75,7 @@ export default async function BotPage({ params }: { params: Promise<{ id: string
                     {/* Configurações Básicas */}
                     <div className="rounded-lg border bg-white p-6 shadow-sm">
                         <h2 className="text-lg font-semibold mb-4">Configurações</h2>
-                        <form action={updateBot} className="space-y-4">
+                        <form action={async (fd) => { await updateBot(fd); }} className="space-y-4">
                             <input type="hidden" name="id" value={bot.id} />
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Nome do Bot</label>
