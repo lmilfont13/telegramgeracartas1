@@ -34,7 +34,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
     let attempt = 1;
 
     // Função interna para tentar renderizar e validar página única
-    async function tryRender(fs, lg, ss, ls) {
+    async function tryRender(fs, lg, ss, ls, allowOverflow = false) {
         return new Promise((resolve, reject) => {
             try {
                 const doc = new PDFDocument({
@@ -45,8 +45,11 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
 
                 // --- ESTRATÉGIA ZERO-OVERFLOW ---
                 // Se o PDFKit tentar adicionar uma segunda página, abortamos na hora e reduzimos tudo.
+                // EXCETO se for a última tentativa (allowOverflow=true) onde preferimos cortar do que dar erro.
                 doc.on('pageAdded', () => {
-                    reject(new Error('OVERFLOW'));
+                    if (!allowOverflow) {
+                        reject(new Error('OVERFLOW'));
+                    }
                 });
 
                 const chunks = [];
@@ -201,7 +204,7 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
                     doc.text(footerText, mH, footerY, { align: 'center', width: pageWidth - (mH * 2) });
                 }
 
-                doc.fontSize(4).fillColor('#eeeeee').text(`v4.1.Zero-Att-${attempt}-${new Date().toISOString()}`, 10, pageHeight - 10);
+                doc.fontSize(4).fillColor('#eeeeee').text(`v4.3.Final-Att-${attempt}-${new Date().toISOString()}`, 10, pageHeight - 10);
                 doc.end();
             } catch (error) { reject(error); }
         });
@@ -210,8 +213,8 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
     // --- LOOP RECURSIVO DE TENTATIVAS (ZERO OVERFLOW) ---
     while (attempt < 15) {
         try {
-            console.log(`[PDFGen v4.1] Tentativa ${attempt}: Font=${fontSize}pt, Gap=${lineGap}, Stamp=${stampScale}`);
-            const buffer = await tryRender(fontSize, lineGap, stampScale, logoScale);
+            console.log(`[PDFGen v4.3] Tentativa ${attempt}: Font=${fontSize}pt, Gap=${lineGap}, Stamp=${stampScale}`);
+            const buffer = await tryRender(fontSize, lineGap, stampScale, logoScale, false);
             return buffer; // Se chegou aqui, deu certo e ficou em uma página!
         } catch (err) {
             if (err.message === 'OVERFLOW') {
@@ -229,8 +232,9 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
         }
     }
 
-    // Fallback final se nada der certo (o que não deve acontecer com fs=3.5)
-    return await tryRender(3.5, -4.5, 0.6, 0.6);
+    // Fallback final: Se após 15 tentativas não coube, forçamos a renderização clipped (allowOverflow=true)
+    console.warn(`[PDFGen v4.3] Max attempts reached. Forcing 1-page clipped output.`);
+    return await tryRender(3.5, -4.5, 0.6, 0.6, true);
 }
 
 function max(a, b) { return a > b ? a : b; }
