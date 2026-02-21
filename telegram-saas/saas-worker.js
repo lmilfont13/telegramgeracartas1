@@ -44,6 +44,7 @@ const userStates = {};
 
 const STEPS = {
     IDLE: 'IDLE',
+    AWAITING_PASSWORD: 'AWAITING_PASSWORD',
     SELECTING_TEMPLATE: 'SELECTING_TEMPLATE',
     SELECTING_COMPANY: 'SELECTING_COMPANY',
     SELECTING_LOJA: 'SELECTING_LOJA',
@@ -257,6 +258,8 @@ function startBot(botData) {
         activeBots[botData.id] = bot;
         console.log(`✅ Bot ${botData.nome} instanciado com sucesso.`);
 
+        const BOT_PASSWORD = process.env.BOT_PASSWORD || 'luc13@';
+
         // Lógica de Mensagem
         // Lógica de Mensagem (Comandos e Texto Livre)
         bot.on('message', async (msg) => {
@@ -266,11 +269,23 @@ function startBot(botData) {
 
             // Inicializa estado se não existir
             if (!userStates[chatId]) {
-                userStates[chatId] = { step: STEPS.IDLE, data: {} };
+                userStates[chatId] = { step: STEPS.AWAITING_PASSWORD, data: {}, isAuthenticated: false };
             }
             const state = userStates[chatId];
 
             console.log(`[Bot ${botData.nome}] (${state.step}) Mensagem de ${msg.from.first_name}: "${text}"`);
+
+            // Fluxo de Autenticação
+            if (!state.isAuthenticated) {
+                if (text === BOT_PASSWORD) {
+                    state.isAuthenticated = true;
+                    state.step = STEPS.IDLE;
+                    return bot.sendMessage(chatId, "🔓 **Acesso Autorizado!**\nUse /start para começar a gerar suas cartas.", { parse_mode: 'Markdown' });
+                } else {
+                    state.step = STEPS.AWAITING_PASSWORD;
+                    return bot.sendMessage(chatId, "🔐 **Bot Protegido**\nPor favor, informe a senha de ativação para continuar:");
+                }
+            }
 
             // COMANDOS GLOBAIS
             if (text === '/start' || text === '/reiniciar') {

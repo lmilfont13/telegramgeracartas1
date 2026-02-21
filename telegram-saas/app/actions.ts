@@ -200,14 +200,29 @@ export async function createEmpresa(formData: FormData) {
     return { success: true, id: newEmpresa.id }
 }
 
-export async function deleteCarta(id: string) {
+export async function deleteLetter(id: string, pdfUrl?: string) {
     const supabase = await createClient()
+
+    // 1. Se houver URL, deleta do storage
+    if (pdfUrl) {
+        try {
+            const path = pdfUrl.split('/public/cartas/')[1]
+            if (path) {
+                await supabase.storage.from('cartas').remove([path])
+            }
+        } catch (e) {
+            console.error('Erro ao deletar arquivo físico:', e)
+        }
+    }
+
+    // 2. Deleta do banco
     const { error } = await supabase.from('cartas_geradas').delete().eq('id', id)
 
     if (error) {
         console.error('Erro ao excluir carta:', error)
-        return { error: 'Erro ao excluir.' }
+        return { error: 'Erro ao excluir do banco.' }
     }
+
     revalidatePath('/')
     return { success: true }
 }

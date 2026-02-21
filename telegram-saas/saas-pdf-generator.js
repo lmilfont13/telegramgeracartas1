@@ -1,4 +1,5 @@
-const PDFDocument = require('pdfkit');
+const PDFKit = require('pdfkit');
+const PDFDocument = PDFKit.default || PDFKit;
 const axios = require('axios');
 
 /**

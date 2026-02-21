@@ -23,10 +23,10 @@ const CardHeader = React.forwardRef<
     <div
         ref={ref}
         className={cn("flex flex-col space-y-1.5 p-6", className)}
-    ...props
+        {...props}
     />
 ))
-    CardHeader.displayName = "CardHeader"
+CardHeader.displayName = "CardHeader"
 
 const CardTitle = React.forwardRef<
     HTMLParagraphElement,

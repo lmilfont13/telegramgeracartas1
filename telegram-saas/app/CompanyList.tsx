@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createEmpresa, deleteEmpresa } from './actions'
-import { Building2, Plus, Trash2, Settings, ExternalLink } from 'lucide-react'
+import { Building2, Plus, Trash2, Settings, ChevronRight } from 'lucide-react'
 
 interface Empresa {
     id: string
@@ -18,8 +18,6 @@ export default function CompanyList({ initialCompanies }: { initialCompanies: Em
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault()
-        console.log("Submitting new company:", newName); // DEBUG
-
         if (!newName.trim()) return
 
         const formData = new FormData()
@@ -27,17 +25,11 @@ export default function CompanyList({ initialCompanies }: { initialCompanies: Em
 
         try {
             const result = await createEmpresa(formData)
-            console.log("Creation result:", result); // DEBUG
-
             if (result.success) {
-                console.log("Success! Reloading..."); // DEBUG
                 window.location.reload()
-            } else {
-                alert("Erro ao criar: " + JSON.stringify(result.error)); // DEBUG ALERT
             }
         } catch (err) {
-            console.error("Client Error:", err);
-            alert("Erro cliente: " + err);
+            console.error("Client Error:", err)
         }
     }
 
@@ -51,74 +43,79 @@ export default function CompanyList({ initialCompanies }: { initialCompanies: Em
 
     return (
         <div className="space-y-4">
-            {!isAdding ? (
-                <button
-                    onClick={() => setIsAdding(true)}
-                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-xl text-sm font-bold text-gray-500 hover:border-blue-400 hover:text-blue-600 transition-all bg-white shadow-sm"
-                >
-                    <Plus className="h-4 w-4" />
-                    Nova Empresa / Marca
-                </button>
-            ) : (
-                <form onSubmit={handleCreate} className="bg-white p-4 rounded-xl border border-blue-200 shadow-sm animate-in fade-in slide-in-from-top-2">
-                    <h3 className="text-sm font-bold mb-3 text-blue-600">Cadastrar Nova Empresa</h3>
-                    <div className="flex gap-2">
-                        <input
-                            autoFocus
-                            placeholder="Nome da Empresa"
-                            className="flex-1 rounded-lg border p-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
-                            value={newName}
-                            onChange={(e) => setNewName(e.target.value)}
-                        />
-                        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700">Criar</button>
-                        <button type="button" onClick={() => setIsAdding(false)} className="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-200">Cancelar</button>
-                    </div>
-                </form>
-            )}
-
             <div className="grid gap-3">
                 {companies && companies.length > 0 ? (
                     companies.map((c) => (
-                        <div key={c.id} className="group flex items-center justify-between rounded-xl border bg-white p-4 shadow-sm hover:shadow-md transition-all">
-                            <div className="flex items-center gap-3 overflow-hidden">
-                                <div className="h-10 w-10 flex-shrink-0 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 font-bold border border-blue-100">
+                        <div key={c.id} className="group relative flex items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all">
+                            <div className="flex items-center gap-4 overflow-hidden">
+                                <div className="h-12 w-12 flex-shrink-0 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-950 font-black border-2 border-transparent group-hover:border-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all overflow-hidden">
                                     {c.logo_url ? (
-                                        <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/logos/${c.logo_url}`} className="h-full w-full object-contain p-1" />
+                                        <img src={c.logo_url} className="h-full w-full object-cover" />
                                     ) : (
-                                        <Building2 className="h-5 w-5" />
+                                        <Building2 className="h-6 w-6 stroke-[2.5]" />
                                     )}
                                 </div>
                                 <div className="flex flex-col overflow-hidden">
-                                    <span className="truncate font-bold text-sm text-gray-900 group-hover:text-blue-600 transition-colors">{c.nome}</span>
-                                    <span className="text-[10px] text-gray-400 uppercase font-semibold tracking-wider">MARCA ATIVA</span>
+                                    <span className="truncate font-black text-sm text-gray-950 uppercase tracking-tighter">{c.nome}</span>
+                                    <span className="text-[9px] text-blue-600 font-black uppercase tracking-widest">MARCA ATIVA</span>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                                 <a
-                                    href={`/empresa/${c.id}`}
-                                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                    href={`/bot/config/${c.id}`}
+                                    className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                                     title="Configurar Logo e Carimbos"
                                 >
-                                    <Settings className="h-4 w-4" />
+                                    <Settings className="h-4 w-4 stroke-[2.5]" />
                                 </a>
                                 <button
                                     onClick={() => handleDelete(c.id)}
-                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                                     title="Excluir Empresa"
                                 >
-                                    <Trash2 className="h-4 w-4" />
+                                    <Trash2 className="h-4 w-4 stroke-[2.5]" />
                                 </button>
+                                <div className="ml-1 text-gray-200">
+                                    <ChevronRight className="h-4 w-4" />
+                                </div>
                             </div>
                         </div>
                     ))
                 ) : (
-                    <div className="py-8 text-center bg-white rounded-xl border border-dashed border-gray-200">
-                        <Building2 className="h-8 w-8 text-gray-200 mx-auto mb-2" />
-                        <p className="text-sm text-gray-400">Nenhuma empresa cadastrada.</p>
+                    <div className="py-12 text-center bg-gray-50 rounded-[28px] border-2 border-dashed border-gray-200">
+                        <Building2 className="h-8 w-8 text-gray-200 mx-auto mb-3" />
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Nenhuma empresa</p>
                     </div>
                 )}
             </div>
+
+            {!isAdding ? (
+                <button
+                    onClick={() => setIsAdding(true)}
+                    className="w-full flex items-center justify-center gap-2 py-4 border-2 border-dashed border-gray-200 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 hover:border-blue-600/50 hover:text-blue-600 transition-all bg-transparent active:scale-[0.98]"
+                >
+                    <Plus className="h-4 w-4 stroke-[3]" />
+                    NOVA MARCA
+                </button>
+            ) : (
+                <form onSubmit={handleCreate} className="bg-white p-5 rounded-2xl border-2 border-blue-600 shadow-xl shadow-blue-500/10 animate-in zoom-in-95">
+                    <h3 className="text-[10px] font-black mb-4 text-blue-600 uppercase tracking-widest">Cadastrar Empresa</h3>
+                    <div className="flex flex-col gap-3">
+                        <input
+                            autoFocus
+                            placeholder="NOME DA EMPRESA"
+                            className="w-full rounded-xl border-2 border-gray-100 bg-gray-50 p-3.5 text-xs font-black text-gray-950 placeholder:text-gray-300 outline-none focus:border-blue-600 focus:bg-white transition-all uppercase tracking-widest"
+                            value={newName}
+                            onChange={(e) => setNewName(e.target.value)}
+                        />
+                        <div className="flex gap-2">
+                            <button type="submit" className="flex-1 bg-blue-600 text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 active:scale-95 transition-all">SALVAR</button>
+                            <button type="button" onClick={() => setIsAdding(false)} className="px-5 bg-gray-100 text-gray-400 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:text-gray-600 transition-all">CANCELAR</button>
+                        </div>
+                    </div>
+                </form>
+            )}
         </div>
     )
 }

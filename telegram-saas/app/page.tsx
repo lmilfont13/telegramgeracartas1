@@ -1,11 +1,10 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import { createBot } from "./actions";
 import TemplateList from "./TemplateList";
 import CompanyList from "./CompanyList";
 import RecentLetters from "./RecentLetters";
-import { FileText, Bot, Plus, History, Settings2, ExternalLink, Building2 } from "lucide-react";
+import { FileText, Bot, Plus, History, Settings2, ExternalLink, Building2, LogOut } from "lucide-react";
 
 export default async function Dashboard() {
     const supabase = await createClient();
@@ -32,84 +31,83 @@ export default async function Dashboard() {
     const { data: cartas } = await supabase.from("cartas_geradas").select("*").order('criado_em', { ascending: false }).limit(6);
 
     return (
-        <div className="min-h-screen bg-gray-50 p-8 text-black">
-            <div className="mx-auto max-w-6xl">
-                <div className="mb-10 flex items-center justify-between">
+        <div className="min-h-screen p-6 md:p-12">
+            <div className="mx-auto max-w-7xl">
+                {/* HEADER */}
+                <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div>
-                        <h1 className="text-4xl font-black tracking-tight text-gray-950">Controle SaaS</h1>
-                        <p className="text-gray-500 mt-1 font-medium">Gestão centralizada de marcas, bots e modelos.</p>
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="bg-blue-600 text-white text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-tighter">SaaS Panel</span>
+                            <h1 className="text-5xl font-black tracking-tighter text-gray-950">CONTROLE</h1>
+                        </div>
+                        <p className="text-gray-400 font-bold uppercase tracking-[0.2em] text-xs">Gestão centralizada de bots e modelos</p>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <a href="/gerar-carta" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl font-bold shadow-lg shadow-blue-200 transition-all transform hover:scale-105">
-                            <Plus className="h-5 w-5" />
-                            Gerar Carta Manual
+
+                    <div className="flex flex-wrap items-center gap-4">
+                        <a href="/gerar-carta" className="group flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black shadow-xl shadow-blue-200 transition-all hover:scale-[1.03] active:scale-95">
+                            <Plus className="h-5 w-5 stroke-[3]" />
+                            GERAR CARTA MANUAL
                         </a>
-                        <div className="flex items-center gap-4 bg-white px-6 py-3 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center gap-4 bg-white px-6 py-3.5 rounded-2xl border border-gray-100 shadow-sm">
                             <div className="text-right">
-                                <p className="text-sm font-bold text-gray-900">{user.email}</p>
-                                <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest">Master Admin</p>
+                                <p className="text-xs font-black text-gray-900 leading-none mb-1">{user.email}</p>
+                                <p className="text-[9px] text-blue-600 font-black uppercase tracking-widest leading-none">MASTER ADMIN</p>
+                            </div>
+                            <form action="/auth/signout" method="post">
+                                <button className="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                                    <LogOut className="h-5 w-5" />
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                {/* STATS */}
+                <div className="grid gap-6 md:grid-cols-3 mb-12">
+                    {[
+                        { label: 'Empresas', val: companiesCount, icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
+                        { label: 'Bots Ativos', val: botsCount, icon: Bot, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                        { label: 'Cartas Geradas', val: totalLetters, icon: FileText, color: 'text-purple-600', bg: 'bg-purple-50' }
+                    ].map((s, i) => (
+                        <div key={i} className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm flex items-center gap-6 group hover:border-blue-200 transition-all hover:shadow-xl hover:shadow-blue-500/5">
+                            <div className={`h-16 w-16 ${s.bg} ${s.color} rounded-2xl flex items-center justify-center transition-all group-hover:scale-110`}>
+                                <s.icon className="h-8 w-8 stroke-[2.5]" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-1">{s.label}</p>
+                                <h3 className="text-3xl font-black text-gray-950 tabular-nums leading-none">{s.val || 0}</h3>
                             </div>
                         </div>
-                    </div>
+                    ))}
                 </div>
 
-                {/* ESTATISTICAS RAPIDAS */}
-                <div className="grid gap-6 md:grid-cols-3 mb-10">
-                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-5 group hover:border-blue-200 transition-all">
-                        <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
-                            <Building2 className="h-6 w-6" />
-                        </div>
-                        <div>
-                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Empresas</p>
-                            <h3 className="text-2xl font-black text-gray-950">{companiesCount || 0}</h3>
-                        </div>
-                    </div>
-                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-5 group hover:border-blue-200 transition-all">
-                        <div className="h-12 w-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                            <Bot className="h-6 w-6" />
-                        </div>
-                        <div>
-                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Bots Ativos</p>
-                            <h3 className="text-2xl font-black text-gray-950">{botsCount || 0}</h3>
-                        </div>
-                    </div>
-                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-5 group hover:border-purple-200 transition-all">
-                        <div className="h-12 w-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-all">
-                            <FileText className="h-6 w-6" />
-                        </div>
-                        <div>
-                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Cartas Geradas</p>
-                            <h3 className="text-2xl font-black text-gray-950">{totalLetters || 0}</h3>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="grid gap-8 lg:grid-cols-3">
-
-                    {/* COLUNA ESQUERDA: BOTS */}
-                    <div className="lg:col-span-2 space-y-8">
+                <div className="grid gap-10 lg:grid-cols-3">
+                    {/* BOTS SECTION */}
+                    <div className="lg:col-span-2 space-y-10">
                         <section>
-                            <div className="mb-4 flex items-center justify-between">
-                                <h2 className="text-xl font-bold flex items-center gap-2">
-                                    <Bot className="h-6 w-6 text-blue-600" />
-                                    Meus Bots
+                            <div className="mb-6 flex items-center justify-between">
+                                <h2 className="text-xl font-black flex items-center gap-3 text-gray-950 uppercase tracking-tight">
+                                    <div className="h-2 w-2 rounded-full bg-blue-600 animate-pulse"></div>
+                                    Monitoramento de Bots
                                 </h2>
                             </div>
 
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-5 md:grid-cols-2">
                                 {bots?.map((bot) => (
-                                    <div key={bot.id} className="rounded-xl border bg-white p-5 shadow-sm hover:shadow-md transition-all group">
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-                                                <Bot className="h-6 w-6" />
+                                    <div key={bot.id} className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all group border-b-4 border-b-gray-200 hover:border-b-blue-600">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="h-12 w-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-900 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                                <Bot className="h-6 w-6 stroke-[2]" />
                                             </div>
-                                            <div className={`h-2.5 w-2.5 rounded-full ${bot.ativo ? 'bg-green-500' : 'bg-red-500'} shadow-sm`}></div>
+                                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${bot.ativo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {bot.ativo ? 'Online' : 'Offline'}
+                                            </span>
                                         </div>
-                                        <h3 className="text-lg font-bold">{bot.nome}</h3>
-                                        <p className="text-xs text-gray-400 font-mono mt-1">TOKEN: {bot.token_telegram.slice(0, 12)}...</p>
+                                        <h3 className="text-xl font-black text-gray-950 mb-1">{bot.nome}</h3>
+                                        <p className="text-[10px] text-gray-400 font-bold font-mono tracking-tight uppercase px-3 py-1 bg-gray-50 rounded-lg inline-block">ID: {bot.id.slice(0, 8)}...</p>
 
-                                        <div className="mt-5 flex gap-2">
-                                            <a href={`/bot/${bot.id}`} className="flex-1 rounded-lg bg-gray-900 py-2 text-center text-sm font-semibold text-white hover:bg-black transition-colors flex items-center justify-center gap-2">
+                                        <div className="mt-6 flex gap-2">
+                                            <a href={`/bot/${bot.id}`} className="flex-1 rounded-2xl bg-gray-950 py-3 text-center text-xs font-black text-white hover:bg-blue-600 transition-all flex items-center justify-center gap-2 uppercase tracking-widest">
                                                 <Settings2 className="h-4 w-4" />
                                                 Configurar
                                             </a>
@@ -117,48 +115,51 @@ export default async function Dashboard() {
                                     </div>
                                 ))}
 
-                                <div className="rounded-xl border border-dashed border-gray-300 bg-white p-5 flex flex-col items-center justify-center text-center">
-                                    <h3 className="font-bold text-gray-900">Novo Bot</h3>
-                                    <form action={async (fd) => { 'use server'; await createBot(fd); }} className="mt-4 w-full space-y-3">
-                                        <input name="nome" placeholder="Nome (Ex: Unidade Sul)" className="w-full rounded-lg border p-2 text-sm bg-gray-50 focus:bg-white transition-all outline-none focus:ring-2 focus:ring-blue-100" required />
-                                        <input name="token" placeholder="Token do BotFather" className="w-full rounded-lg border p-2 text-sm bg-gray-50 focus:bg-white transition-all outline-none focus:ring-2 focus:ring-blue-100" required />
-                                        <button className="w-full rounded-lg bg-blue-600 py-2 text-sm font-bold text-white hover:bg-blue-700 flex items-center justify-center gap-2">
-                                            <Plus className="h-4 w-4" />
-                                            Adicionar Bot
+                                <div className="rounded-3xl border-2 border-dashed border-gray-200 bg-gray-50/50 p-6 flex flex-col items-center justify-center text-center group hover:border-blue-600 hover:bg-white transition-all">
+                                    <div className="mb-4 text-gray-300 group-hover:text-blue-600 transition-colors">
+                                        <Plus className="h-10 w-10 stroke-[1.5]" />
+                                    </div>
+                                    <h3 className="font-black text-gray-950 uppercase tracking-tighter text-sm mb-4">Novo Bot</h3>
+                                    <form action={async (fd) => { 'use server'; await createBot(fd); }} className="w-full space-y-3">
+                                        <input name="nome" placeholder="NOME DO BOT" className="w-full rounded-2xl border-2 border-gray-100 p-3 text-xs font-bold uppercase tracking-widest bg-white focus:border-blue-600 outline-none transition-all placeholder:text-gray-300" required />
+                                        <input name="token" placeholder="TOKEN DO TELEGRAM" className="w-full rounded-2xl border-2 border-gray-100 p-3 text-xs font-bold font-mono bg-white focus:border-blue-600 outline-none transition-all placeholder:text-gray-300" required />
+                                        <button className="w-full rounded-2xl bg-white border-2 border-gray-900 py-3 text-xs font-black text-gray-950 hover:bg-gray-900 hover:text-white transition-all shadow-sm">
+                                            ADICIONAR
                                         </button>
                                     </form>
                                 </div>
                             </div>
                         </section>
 
-                        <section>
-                            <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
+                        <section className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
+                            <h2 className="text-xl font-black flex items-center gap-3 text-gray-950 uppercase tracking-tight mb-6">
                                 <History className="h-6 w-6 text-purple-600" />
-                                Últimas Cartas Geradas
+                                Histórico de Atividade
                             </h2>
                             <RecentLetters initialLetters={cartas || []} />
                         </section>
                     </div>
 
-                    {/* COLUNA DIREITA: MODELOS E EMPRESAS */}
-                    <div className="space-y-8">
-                        <section>
-                            <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
-                                <FileText className="h-6 w-6 text-orange-500" />
-                                Modelos de Cartas
+                    {/* MODELS SECTION */}
+                    <div className="space-y-10">
+                        <section className="bg-gray-950 text-white p-8 rounded-[32px] shadow-2xl shadow-blue-500/10">
+                            <h2 className="text-xl font-black flex items-center gap-3 uppercase tracking-tight mb-2">
+                                <FileText className="h-6 w-6 text-blue-500" />
+                                Modelos
                             </h2>
+                            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-8">Templates de cartas inteligentes</p>
                             <TemplateList initialTemplates={templates || []} companies={companies || []} />
                         </section>
 
-                        <section>
-                            <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
+                        <section className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
+                            <h2 className="text-xl font-black flex items-center gap-3 text-gray-950 uppercase tracking-tight mb-2">
                                 <Building2 className="h-6 w-6 text-blue-600" />
-                                Gerenciar Empresas (Marcas)
+                                Marcas
                             </h2>
+                            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-8">Gestão de logos e carimbos</p>
                             <CompanyList initialCompanies={companies || []} />
                         </section>
                     </div>
-
                 </div>
             </div>
         </div>

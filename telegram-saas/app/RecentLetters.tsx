@@ -1,71 +1,89 @@
-
 'use client'
 
 import { useState } from 'react'
-import { deleteCarta } from './actions'
-import { FileText, Trash2 } from 'lucide-react'
+import { deleteLetter } from './actions'
+import { FileText, Trash2, Download, User, Calendar, ExternalLink } from 'lucide-react'
 
-interface Carta {
+interface Letter {
     id: string
-    nome_arquivo: string
-    nome_funcionario: string
-    data_geracao: string
+    funcionario_id: string
+    template_id: string
+    pdf_url: string
+    criado_em: string
 }
 
-export default function RecentLetters({ initialLetters }: { initialLetters: Carta[] }) {
+export default function RecentLetters({ initialLetters }: { initialLetters: Letter[] }) {
     const [letters, setLetters] = useState(initialLetters)
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Tem certeza que deseja apagar este registro do histórico?')) return;
-
-        const result = await deleteCarta(id)
+    const handleDelete = async (id: string, pdfUrl: string) => {
+        if (!confirm('Tem certeza que deseja excluir este registro e o arquivo PDF?')) return
+        const result = await deleteLetter(id, pdfUrl)
         if (result.success) {
             setLetters(letters.filter(l => l.id !== id))
         } else {
-            alert("Erro ao excluir!")
+            alert('Erro ao excluir: ' + result.error)
         }
     }
 
     return (
-        <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
-            <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                    <tr>
-                        <th className="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Funcionário</th>
-                        <th className="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Arquivo</th>
-                        <th className="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Data</th>
-                        <th className="px-5 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Ação</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                    {letters?.map((c) => (
-                        <tr key={c.id} className="hover:bg-gray-50 transition-colors group">
-                            <td className="px-5 py-3 text-sm font-semibold text-gray-900">{c.nome_funcionario}</td>
-                            <td className="px-5 py-3">
-                                <div className="flex items-center gap-2 text-sm text-gray-500">
-                                    <FileText className="h-4 w-4 text-gray-400" />
-                                    {c.nome_arquivo}
+        <div className="space-y-4">
+            {letters.length > 0 ? (
+                <div className="grid gap-4">
+                    {letters.map((letter) => (
+                        <div key={letter.id} className="group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-gray-100 bg-gray-50/30 p-5 hover:bg-white hover:border-blue-100 hover:shadow-xl hover:shadow-blue-500/5 transition-all">
+                            <div className="flex items-center gap-4">
+                                <div className="h-12 w-12 rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-blue-600 shadow-sm group-hover:bg-blue-600 group-hover:text-white group-hover:border-transparent transition-all">
+                                    <FileText className="h-6 w-6 stroke-[2.5]" />
                                 </div>
-                            </td>
-                            <td className="px-5 py-3 text-sm text-gray-400">
-                                {new Date(c.data_geracao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                            </td>
-                            <td className="px-5 py-3 text-right">
-                                <button
-                                    onClick={() => handleDelete(c.id)}
-                                    className="text-gray-300 hover:text-red-500 p-1 rounded-md hover:bg-red-50 transition-colors"
-                                    title="Excluir do Histórico"
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <User className="h-3 w-3 text-gray-400" />
+                                        <span className="font-black text-sm text-gray-950 uppercase tracking-tight">Funcionário ID: {letter.funcionario_id.slice(0, 8)}...</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                                            <Calendar className="h-3 w-3" />
+                                            {new Date(letter.criado_em).toLocaleDateString()} {new Date(letter.criado_em).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                        <span className="h-1 w-1 rounded-full bg-gray-200"></span>
+                                        <span className="text-[10px] text-blue-600 font-black uppercase tracking-widest">PDF GERADO</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 sm:self-center">
+                                <a
+                                    href={letter.pdf_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-950 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-950 hover:text-white hover:border-gray-950 transition-all shadow-sm active:scale-95"
                                 >
-                                    <Trash2 className="h-4 w-4" />
+                                    <Download className="h-3.5 w-3.5 stroke-[3]" />
+                                    BAIXAR
+                                </a>
+                                <button
+                                    onClick={() => handleDelete(letter.id, letter.pdf_url)}
+                                    className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                                    title="Excluir Registro"
+                                >
+                                    <Trash2 className="h-4 w-4 stroke-[2.5]" />
                                 </button>
-                            </td>
-                        </tr>
+                            </div>
+                        </div>
                     ))}
-                    {(!letters || letters.length === 0) && (
-                        <tr><td colSpan={4} className="px-5 py-8 text-center text-sm text-gray-400 italic">Nenhuma carta gerada ainda.</td></tr>
-                    )}
-                </tbody>
-            </table>
+                </div>
+            ) : (
+                <div className="py-12 text-center bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-100">
+                    <History className="h-8 w-8 text-gray-200 mx-auto mb-3" />
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Sem registros recentes</p>
+                </div>
+            )}
+
+            {letters.length > 0 && (
+                <button className="w-full py-3 text-[10px] font-black text-gray-400 hover:text-blue-600 uppercase tracking-[0.2em] transition-colors">
+                    VER TODO O HISTÓRICO
+                </button>
+            )}
         </div>
     )
 }

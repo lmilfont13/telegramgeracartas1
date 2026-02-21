@@ -78,38 +78,12 @@ export default function TemplateList({ initialTemplates, companies }: { initialT
     }
 
     return (
-        <div className="space-y-4">
-            {/* Form de Adição */}
-            {!isAdding ? (
-                <button
-                    onClick={() => setIsAdding(true)}
-                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-xl text-sm font-bold text-gray-500 hover:border-blue-400 hover:text-blue-600 transition-all bg-white shadow-sm"
-                >
-                    <Plus className="h-4 w-4" />
-                    Novo Modelo de Carta
-                </button>
-            ) : (
-                <form onSubmit={handleCreate} className="bg-white p-4 rounded-xl border border-blue-200 shadow-sm animate-in fade-in slide-in-from-top-2">
-                    <h3 className="text-sm font-bold mb-3 text-blue-600">Criar Novo Modelo</h3>
-                    <div className="flex gap-2">
-                        <input
-                            autoFocus
-                            placeholder="Nome do Modelo (Ex: Carta de Demissão)"
-                            className="flex-1 rounded-lg border p-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
-                            value={newTemplateName}
-                            onChange={(e) => setNewTemplateName(e.target.value)}
-                        />
-                        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700">Criar</button>
-                        <button type="button" onClick={() => setIsAdding(false)} className="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-200">Cancelar</button>
-                    </div>
-                </form>
-            )}
-
+        <div className="space-y-6">
             {/* Abas de Navegação das Empresas */}
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
                 <button
                     onClick={() => setSelectedCompanyId(null)}
-                    className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${selectedCompanyId === null ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedCompanyId === null ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-gray-800 text-gray-400 border border-gray-700 hover:text-white hover:border-gray-600'}`}
                 >
                     Geral
                 </button>
@@ -117,7 +91,7 @@ export default function TemplateList({ initialTemplates, companies }: { initialT
                     <button
                         key={c.id}
                         onClick={() => setSelectedCompanyId(c.id)}
-                        className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors flex items-center gap-2 ${selectedCompanyId === c.id ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${selectedCompanyId === c.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-gray-800 text-gray-400 border border-gray-700 hover:text-white hover:border-gray-600'}`}
                     >
                         {c.logo_url && <img src={c.logo_url} className="w-4 h-4 rounded-full object-cover bg-white" />}
                         {c.nome}
@@ -128,22 +102,22 @@ export default function TemplateList({ initialTemplates, companies }: { initialT
             <div className="space-y-3">
                 {filteredTemplates.length > 0 ? (
                     filteredTemplates.map((t) => (
-                        <div key={t.id} className={`rounded-xl border bg-white shadow-sm overflow-hidden transition-all ${expandedId === t.id ? 'ring-2 ring-blue-100' : ''}`}>
+                        <div key={t.id} className={`rounded-2xl border transition-all ${expandedId === t.id ? 'bg-gray-900 border-blue-600/50 ring-4 ring-blue-500/5' : 'bg-gray-900/50 border-gray-800 hover:border-gray-700'}`}>
                             <div className="flex items-center justify-between p-4">
                                 <div className="flex items-center gap-3 overflow-hidden flex-1">
-                                    <FileText className={`h-5 w-5 flex-shrink-0 ${selectedCompanyId ? 'text-blue-500' : 'text-gray-400'}`} />
+                                    <FileText className={`h-5 w-5 flex-shrink-0 ${selectedCompanyId ? 'text-blue-500' : 'text-gray-600'}`} />
                                     {editingId === t.id ? (
                                         <input
                                             autoFocus
-                                            className="rounded border px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                                            className="rounded-lg bg-gray-800 border-2 border-blue-600 px-3 py-1.5 text-xs text-white font-bold outline-none w-full"
                                             value={newName}
                                             onChange={(e) => setNewName(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && handleRename(t.id)}
                                         />
                                     ) : (
                                         <div className="flex flex-col overflow-hidden">
-                                            <span className="truncate font-bold text-sm">{t.nome}</span>
-                                            <span className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold flex items-center gap-1">
+                                            <span className="truncate font-black text-sm text-gray-100 uppercase tracking-tight">{t.nome}</span>
+                                            <span className="text-[9px] text-gray-600 font-black uppercase tracking-widest">
                                                 {new Date(t.criado_em).toLocaleDateString()}
                                             </span>
                                         </div>
@@ -153,32 +127,32 @@ export default function TemplateList({ initialTemplates, companies }: { initialT
                                 <div className="flex items-center gap-1">
                                     {editingId === t.id ? (
                                         <>
-                                            <button onClick={() => handleRename(t.id)} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors">
-                                                <Check className="h-4 w-4" />
+                                            <button onClick={() => handleRename(t.id)} className="p-2 text-green-500 hover:bg-green-500/10 rounded-xl transition-colors">
+                                                <Check className="h-4 w-4 stroke-[3]" />
                                             </button>
-                                            <button onClick={() => setEditingId(null)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                                                <X className="h-4 w-4" />
+                                            <button onClick={() => setEditingId(null)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors">
+                                                <X className="h-4 w-4 stroke-[3]" />
                                             </button>
                                         </>
                                     ) : (
                                         <>
                                             <button
                                                 onClick={() => { setExpandedId(expandedId === t.id ? null : t.id); setTempContent(t.conteudo || ''); }}
-                                                className={`p-1.5 rounded-lg transition-colors ${expandedId === t.id ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'}`}
+                                                className={`p-2 rounded-xl transition-all ${expandedId === t.id ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}
                                             >
-                                                {expandedId === t.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                                {expandedId === t.id ? <ChevronUp className="h-4 w-4 stroke-[3]" /> : <ChevronDown className="h-4 w-4 stroke-[3]" />}
                                             </button>
                                             <button
                                                 onClick={() => { setEditingId(t.id); setNewName(t.nome); }}
-                                                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                className="p-2 text-gray-500 hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-colors"
                                             >
-                                                <Edit2 className="h-4 w-4" />
+                                                <Edit2 className="h-4 w-4 stroke-[2.5]" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(t.id)}
-                                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors"
                                             >
-                                                <Trash2 className="h-4 w-4" />
+                                                <Trash2 className="h-4 w-4 stroke-[2.5]" />
                                             </button>
                                         </>
                                     )}
@@ -187,25 +161,29 @@ export default function TemplateList({ initialTemplates, companies }: { initialT
 
                             {/* Área de Edição de Conteúdo Expandida */}
                             {expandedId === t.id && (
-                                <div className="p-4 pt-0 border-t border-gray-50 bg-gray-50/50 animate-in slide-in-from-top-4">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Conteúdo do Modelo</p>
-                                        <p className="text-[10px] text-gray-400 italic">Dica: use {`{{NOME}}, {{LOJA}}, {{DATA}}`}</p>
+                                <div className="p-4 pt-0 border-t border-gray-800 animate-in slide-in-from-top-4">
+                                    <div className="flex items-center justify-between mb-3 mt-4">
+                                        <p className="text-[9px] text-gray-500 uppercase font-black tracking-widest">Estrutura do Documento</p>
+                                        <div className="flex gap-2">
+                                            {['{{NOME}}', '{{DATA}}'].map(tag => (
+                                                <span key={tag} className="text-[8px] bg-gray-800 text-blue-400 px-1.5 py-0.5 rounded font-mono font-bold">{tag}</span>
+                                            ))}
+                                        </div>
                                     </div>
                                     <textarea
-                                        className="w-full rounded-xl border border-gray-200 p-3 text-sm font-mono shadow-inner outline-none focus:ring-2 focus:ring-blue-100 min-h-[200px]"
+                                        className="w-full rounded-2xl bg-gray-950 border-2 border-gray-800 p-4 text-xs font-mono text-gray-300 shadow-inner outline-none focus:border-blue-600 transition-all min-h-[180px] scrollbar-hide"
                                         value={tempContent}
                                         onChange={(e) => setTempContent(e.target.value)}
                                         placeholder="Olá {{NOME}}, ..."
                                     />
-                                    <div className="mt-3 flex justify-end">
+                                    <div className="mt-4 flex justify-end">
                                         <button
                                             disabled={isSaving}
                                             onClick={() => handleSaveContent(t.id)}
-                                            className="bg-gray-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-black transition-all disabled:opacity-50"
+                                            className="bg-blue-600 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-blue-700 transition-all disabled:opacity-50 active:scale-95"
                                         >
-                                            <Save className="h-4 w-4" />
-                                            {isSaving ? 'Salvando...' : 'Salvar Alterações'}
+                                            <Save className="h-4 w-4 stroke-[2.5]" />
+                                            {isSaving ? 'SALVANDO...' : 'SALVAR TEMPLATE'}
                                         </button>
                                     </div>
                                 </div>
@@ -213,12 +191,40 @@ export default function TemplateList({ initialTemplates, companies }: { initialT
                         </div>
                     ))
                 ) : (
-                    <div className="py-12 text-center bg-white rounded-xl border border-dashed border-gray-200">
-                        <FileText className="h-8 w-8 text-gray-200 mx-auto mb-2" />
-                        <p className="text-sm text-gray-400">Nenhum modelo cadastrado nesta categoria.</p>
+                    <div className="py-12 text-center bg-gray-900/40 rounded-[28px] border-2 border-dashed border-gray-800">
+                        <FileText className="h-8 w-8 text-gray-800 mx-auto mb-3" />
+                        <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">Nenhum modelo cadastrado</p>
                     </div>
                 )}
             </div>
+
+            {/* Ação de Adição */}
+            {!isAdding ? (
+                <button
+                    onClick={() => setIsAdding(true)}
+                    className="w-full flex items-center justify-center gap-2 py-4 border-2 border-dashed border-gray-800 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:border-blue-600/50 hover:text-blue-500 transition-all bg-transparent active:scale-[0.98]"
+                >
+                    <Plus className="h-4 w-4 stroke-[3]" />
+                    ADICIONAR NOVO TEMPLATE
+                </button>
+            ) : (
+                <form onSubmit={handleCreate} className="bg-blue-600 p-6 rounded-2xl shadow-xl shadow-blue-500/20 animate-in zoom-in-95">
+                    <h3 className="text-[10px] font-black mb-4 text-white uppercase tracking-widest">Configurar Novo Modelo</h3>
+                    <div className="flex flex-col gap-3">
+                        <input
+                            autoFocus
+                            placeholder="NOME DO MODELO (EX: CARTA DE ADVERTÊNCIA)"
+                            className="w-full rounded-xl border-0 bg-blue-700 p-3.5 text-xs font-bold text-white placeholder-blue-300 outline-none focus:ring-2 focus:ring-white/50 transition-all uppercase tracking-widest"
+                            value={newTemplateName}
+                            onChange={(e) => setNewTemplateName(e.target.value)}
+                        />
+                        <div className="flex gap-2">
+                            <button type="submit" className="flex-1 bg-white text-blue-600 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 active:scale-95 transition-all">CRIAR AGORA</button>
+                            <button type="button" onClick={() => setIsAdding(false)} className="px-5 bg-blue-500 text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-400 transition-all">CANCELAR</button>
+                        </div>
+                    </div>
+                </form>
+            )}
         </div>
     )
 }
