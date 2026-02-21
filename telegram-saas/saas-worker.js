@@ -274,9 +274,9 @@ function renderTemplate(template, funcionario, botData) {
     }
 
     // Correções de Espaçamento Pós-Processamento:
-    // 1. Adiciona espaço se um placeholder negritado estiver colado em uma letra/número
-    text = text.replace(/(\*\*[^*]+\*\*)([a-zA-Z0-9áéíóúÁÉÍÓÚ])/g, '$1 $2');
-    text = text.replace(/([a-zA-Z0-9áéíóúÁÉÍÓÚ])(\*\*[^*]+\*\*)/g, '$1 $2');
+    // 1. Adiciona espaço se um placeholder negritado estiver colado em qualquer caractere que não seja espaço ou pontuação comum
+    text = text.replace(/(\*\*[^*]+\*\*)([^\s*.,!?;:])/g, '$1 $2');
+    text = text.replace(/([^\s*.,!?;:])(\*\*[^*]+\*\*)/g, '$1 $2');
 
     // 2. Correção específica para termos comuns que podem estar grudados no template
     text = text.replace(/CLTnesta/gi, 'CLT nesta');
@@ -304,6 +304,26 @@ function startBot(botData) {
         const bot = new TelegramBot(botData.token_telegram, { polling: true });
         activeBots[botData.id] = bot;
         console.log(`✅ Bot ${botData.nome} instanciado com sucesso.`);
+
+        // Configura menu de comandos com retry para garantir que o Telegram processe
+        const setupCommands = async () => {
+            try {
+                await bot.setMyCommands([
+                    { command: 'start', description: 'Abrir seletor de marcas' },
+                    { command: 'nova_empresa', description: 'Cadastrar nova marca/empresa' },
+                    { command: 'reiniciar', description: 'Reiniciar o fluxo do zero' },
+                    { command: 'cancelar', description: 'Cancelar operação atual' },
+                    { command: 'ajuda', description: 'Mostrar comandos e ajuda' },
+                    { command: 'ping', description: 'Verificar status do bot' }
+                ]);
+                console.log(`[Bot ${botData.nome}] Menu de comandos configurado.`);
+            } catch (e) {
+                console.error(`[Bot ${botData.nome}] Erro ao setar comandos:`, e.message);
+                // Tenta novamente em 10 segundos se falhar
+                setTimeout(setupCommands, 10000);
+            }
+        };
+        setupCommands();
 
         const BOT_PASSWORD = process.env.BOT_PASSWORD || 'luc13@';
 
@@ -492,7 +512,6 @@ function startBot(botData) {
                 let { data: results, error } = await supabase
                     .from('funcionarios')
                     .select('*')
-                    .eq('empresa_id', state.data.empresaId)
                     .ilike('nome', text); // Busca exata (case insensitive)
 
                 // 2. Se não achou exato, tenta parcial (LIKE)
@@ -500,7 +519,6 @@ function startBot(botData) {
                     const { data: partialResults, error: partialError } = await supabase
                         .from('funcionarios')
                         .select('*')
-                        .eq('empresa_id', state.data.empresaId)
                         .ilike('nome', `%${text}%`); // Busca parcial
 
                     if (partialError) {
@@ -762,8 +780,8 @@ async function handleResults(bot, chatId, results, botData) {
             }
         };
 
-        // Busca lojas predefinidas da empresa
-        const { data: empresa } = await supabase.from('empresas').select('lojas').eq('id', funcionario.empresa_id).single();
+        // Busca lojas predefinidas da empresa SELECIONADA (não a original do funcionário)
+        const { data: empresa } = await supabase.from('empresas').select('lojas').eq('id', state.data.empresaId).maybeSingle();
         const lojas = empresa?.lojas || [];
 
         if (lojas.length > 0) {
