@@ -179,13 +179,12 @@ export default async function Dashboard() {
                                 <CompanyList initialCompanies={companies || []} />
                             </section>
 
-                            <section id="modelos" className="bg-gray-950 text-white p-8 rounded-[32px] shadow-2xl shadow-blue-500/10">
-                                <header className="mb-8">
-                                    <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-3">
-                                        <FileText className="h-6 w-6 text-blue-500" />
-                                        Modelos
+                            <section id="modelos" className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
+                                <header className="mb-8 border-b border-gray-100 pb-4">
+                                    <h2 className="text-lg font-bold flex items-center gap-2 text-gray-900">
+                                        <FileText className="h-5 w-5 text-blue-600" />
+                                        Modelos de Cartas
                                     </h2>
-                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mt-1">Biblioteca de Templates</p>
                                 </header>
                                 <TemplateList initialTemplates={templates || []} companies={companies || []} />
                             </section>

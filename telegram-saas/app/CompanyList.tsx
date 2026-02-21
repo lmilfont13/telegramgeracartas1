@@ -57,24 +57,32 @@ export default function CompanyList({ initialCompanies }: { initialCompanies: Em
                                 </div>
                                 <div className="flex flex-col overflow-hidden">
                                     <span className="truncate font-black text-sm text-gray-950 uppercase tracking-tighter">{c.nome}</span>
-                                    <span className="text-[9px] text-blue-600 font-black uppercase tracking-widest">MARCA ATIVA</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[9px] text-blue-600 font-black uppercase tracking-widest">MARCA ATIVA</span>
+                                        {c.lojas && (c.lojas as string[]).length > 0 && (
+                                            <span className="text-[9px] text-gray-400 font-black bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded uppercase tracking-widest">
+                                                {(c.lojas as string[]).length} {(c.lojas as string[]).length === 1 ? 'Loja' : 'Lojas'}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                                 <a
                                     href={`/empresa/${c.id}`}
-                                    className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                                    title="Configurar Logo e Carimbos"
+                                    className="flex items-center gap-2 px-3 py-2 bg-gray-50 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all border border-gray-100 text-[10px] font-bold uppercase tracking-widest"
+                                    title="Configurar Marca e Lojas"
                                 >
-                                    <Settings className="h-4 w-4 stroke-[2.5]" />
+                                    <Settings className="h-3.5 w-3.5" />
+                                    CONFIGURAR
                                 </a>
                                 <button
                                     onClick={() => handleDelete(c.id)}
-                                    className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all border border-transparent"
                                     title="Excluir Empresa"
                                 >
-                                    <Trash2 className="h-4 w-4 stroke-[2.5]" />
+                                    <Trash2 className="h-4 w-4" />
                                 </button>
                                 <div className="ml-1 text-gray-200">
                                     <ChevronRight className="h-4 w-4" />
