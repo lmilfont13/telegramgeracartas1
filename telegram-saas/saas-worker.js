@@ -277,9 +277,28 @@ function startBot(botData) {
 
             // Fluxo de Autenticação
             if (!state.isAuthenticated) {
-                if (text === BOT_PASSWORD) {
+                // Tenta buscar no banco se já está autenticado
+                const { data: authRecord } = await supabase
+                    .from('bot_auth')
+                    .select('*')
+                    .eq('chat_id', String(chatId))
+                    .eq('bot_id', botData.id)
+                    .maybeSingle();
+
+                if (authRecord) {
                     state.isAuthenticated = true;
                     state.step = STEPS.IDLE;
+                    console.log(`[Bot ${botData.nome}] Chat ${chatId} já autenticado via banco.`);
+                } else if (text === BOT_PASSWORD) {
+                    state.isAuthenticated = true;
+                    state.step = STEPS.IDLE;
+
+                    // Salva no banco para persistência
+                    await supabase.from('bot_auth').insert({
+                        chat_id: String(chatId),
+                        bot_id: botData.id
+                    });
+
                     return bot.sendMessage(chatId, "🔓 **Acesso Autorizado!**\nUse /start para começar a gerar suas cartas.", { parse_mode: 'Markdown' });
                 } else {
                     state.step = STEPS.AWAITING_PASSWORD;
@@ -467,7 +486,19 @@ function startBot(botData) {
 
             // Proteção de Autenticação para Callbacks
             if (!state.isAuthenticated) {
-                return bot.answerCallbackQuery(query.id, { text: "🔐 Por favor, informe a senha primeiro.", show_alert: true });
+                // Tenta buscar no banco
+                const { data: authRecord } = await supabase
+                    .from('bot_auth')
+                    .select('*')
+                    .eq('chat_id', String(chatId))
+                    .eq('bot_id', botData.id)
+                    .maybeSingle();
+
+                if (authRecord) {
+                    state.isAuthenticated = true;
+                } else {
+                    return bot.answerCallbackQuery(query.id, { text: "🔐 Por favor, informe a senha primeiro.", show_alert: true });
+                }
             }
 
             // 1. Seleção de Empresa (Agora é o PRIMEIRO passo)
