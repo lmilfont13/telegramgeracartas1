@@ -520,7 +520,6 @@ function startBot(botData) {
                     const { data: extraResults } = await supabase
                         .from('funcionarios')
                         .select('*')
-                        .eq('empresa_id', state.data.empresaId)
                         .limit(100);
 
                     const foundInExtras = extraResults?.filter(f =>
