@@ -272,6 +272,18 @@ function renderTemplate(template, funcionario, botData) {
         const formattedValue = (value && !['{{DATA}}', '{{DATA_ATUAL}}'].includes(key)) ? `**${value}**` : (value || '');
         text = text.replace(new RegExp(pattern, 'gi'), formattedValue);
     }
+
+    // Correções de Espaçamento Pós-Processamento:
+    // 1. Adiciona espaço se um placeholder negritado estiver colado em uma letra/número
+    text = text.replace(/(\*\*[^*]+\*\*)([a-zA-Z0-9áéíóúÁÉÍÓÚ])/g, '$1 $2');
+    text = text.replace(/([a-zA-Z0-9áéíóúÁÉÍÓÚ])(\*\*[^*]+\*\*)/g, '$1 $2');
+
+    // 2. Correção específica para termos comuns que podem estar grudados no template
+    text = text.replace(/CLTnesta/gi, 'CLT nesta');
+    text = text.replace(/CLTno/gi, 'CLT no');
+    text = text.replace(/unidade/gi, ' unidade'); // Garante que "unidade" tenha um espaço antes se estiver grudado
+    text = text.replace(/[^\S\r\n]+/g, ' '); // Normaliza múltiplos espaços horizontais para um só
+
     return text;
 }
 
@@ -312,13 +324,18 @@ function startBot(botData) {
 
             // Fluxo de Autenticação
             if (!state.isAuthenticated) {
+                console.log(`[Bot ${botData.nome}] Verificando autenticação para Chat ${chatId} (Bot ID: ${botData.id})...`);
                 // Tenta buscar no banco se já está autenticado
-                const { data: authRecord } = await supabase
+                const { data: authRecord, error: authError } = await supabase
                     .from('bot_auth')
                     .select('*')
                     .eq('chat_id', String(chatId))
                     .eq('bot_id', botData.id)
                     .maybeSingle();
+
+                if (authError) {
+                    console.error(`[Bot ${botData.nome}] Erro ao buscar autenticação:`, authError.message);
+                }
 
                 if (authRecord) {
                     state.isAuthenticated = true;
@@ -328,14 +345,22 @@ function startBot(botData) {
                     state.isAuthenticated = true;
                     state.step = STEPS.IDLE;
 
+                    console.log(`[Bot ${botData.nome}] Senha correta para Chat ${chatId}. Salvando no banco...`);
                     // Salva no banco para persistência
-                    await supabase.from('bot_auth').insert({
+                    const { error: insertError } = await supabase.from('bot_auth').insert({
                         chat_id: String(chatId),
                         bot_id: botData.id
                     });
 
+                    if (insertError) {
+                        console.error(`[Bot ${botData.nome}] Erro ao salvar autenticação:`, insertError.message);
+                    } else {
+                        console.log(`[Bot ${botData.nome}] Autenticação salva para Chat ${chatId}.`);
+                    }
+
                     return bot.sendMessage(chatId, "🔓 **Acesso Autorizado!**\nUse /start para começar a gerar suas cartas.", { parse_mode: 'Markdown' });
                 } else {
+                    console.log(`[Bot ${botData.nome}] Chat ${chatId} não autorizado. Aguardando senha.`);
                     state.step = STEPS.AWAITING_PASSWORD;
                     return bot.sendMessage(chatId, "🔐 **Bot Protegido**\nPor favor, informe a senha de ativação para continuar:");
                 }
@@ -556,14 +581,24 @@ function startBot(botData) {
                     const tempId = Math.random().toString(36).substring(7);
                     const url = await uploadImageToBotSupabase(bot, fileId, 'carimbos', `bot_reg_sign_${tempId}.png`);
 
-                    // Salva no Banco
+                    // 1. Busca um banco de lojas existente para herdar
+                    const { data: existingComps } = await supabase
+                        .from('empresas')
+                        .select('lojas')
+                        .not('lojas', 'is', null)
+                        .limit(1);
+
+                    const lojasToInherit = (existingComps && existingComps.length > 0) ? existingComps[0].lojas : [];
+
+                    // 2. Salva no Banco
                     const { data: newComp, error } = await supabase
                         .from('empresas')
                         .insert({
                             nome: state.data.regNome,
                             logo_url: state.data.regLogo,
                             carimbo_url: state.data.regStamp,
-                            carimbo_funcionario_url: url
+                            carimbo_funcionario_url: url,
+                            lojas: lojasToInherit
                         })
                         .select()
                         .single();
@@ -572,7 +607,7 @@ function startBot(botData) {
 
                     state.step = STEPS.IDLE;
                     state.data = {};
-                    return bot.sendMessage(chatId, `🎉 **Empresa ${newComp.nome} cadastrada com sucesso!**\n\nAgora você já pode selecioná-la ao iniciar com /start.`);
+                    return bot.sendMessage(chatId, `🎉 **Empresa ${newComp.nome} cadastrada com sucesso!**\n\nEla já herdou o banco de **${lojasToInherit.length} lojas** existentes e os funcionários globais já podem ser usados.`);
                 }
             } catch (e) {
                 console.error("[BotPhoto] Erro:", e.message);
@@ -593,12 +628,16 @@ function startBot(botData) {
             // Proteção de Autenticação para Callbacks
             if (!state.isAuthenticated) {
                 // Tenta buscar no banco
-                const { data: authRecord } = await supabase
+                const { data: authRecord, error: authError } = await supabase
                     .from('bot_auth')
                     .select('*')
                     .eq('chat_id', String(chatId))
                     .eq('bot_id', botData.id)
                     .maybeSingle();
+
+                if (authError) {
+                    console.error(`[Bot ${botData.nome}] Erro ao buscar autenticação (callback):`, authError.message);
+                }
 
                 if (authRecord) {
                     state.isAuthenticated = true;
