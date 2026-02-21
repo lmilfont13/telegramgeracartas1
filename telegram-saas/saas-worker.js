@@ -478,7 +478,7 @@ function startBot(botData) {
                 state.step = STEPS.SELECTING_TEMPLATE;
 
                 const empresaId = state.data.empresaId;
-                const { data: templates } = await supabase.from('templates').select('id, nome').or(`empresa_id.eq.${empresaId},empresa_id.is.null`);
+                const { data: templates } = await supabase.from('templates').select('id, nome').order('nome');
 
                 if (!templates || templates.length === 0) {
                     return bot.sendMessage(chatId, `❌ Nenhum modelo de carta encontrado.`);
@@ -753,7 +753,7 @@ function startBot(botData) {
                 state.step = STEPS.SELECTING_TEMPLATE;
 
                 const empresaId = state.data.empresaId;
-                const { data: templates } = await supabase.from('templates').select('id, nome').or(`empresa_id.eq.${empresaId},empresa_id.is.null`);
+                const { data: templates } = await supabase.from('templates').select('id, nome').order('nome');
 
                 bot.answerCallbackQuery(query.id);
 
