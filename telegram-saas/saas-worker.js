@@ -637,7 +637,9 @@ function startBot(botData) {
             const chatId = query.message.chat.id;
             const data = query.data; // Formato 'tipo:id'
 
-            if (!userStates[chatId]) return;
+            if (!userStates[chatId]) {
+                userStates[chatId] = { step: STEPS.IDLE, data: {}, isAuthenticated: false };
+            }
             const state = userStates[chatId];
 
             const [type, value] = data.split(':');
@@ -768,6 +770,12 @@ async function handleResults(bot, chatId, results, botData) {
     if (results.length === 1) {
         const funcionario = results[0];
         const nomeExibicao = extractName(funcionario);
+
+        const state = userStates[chatId];
+        if (!state || !state.data || !state.data.empresaId) {
+            console.warn(`[handleResults] Estado incompleto para Chat ${chatId}.`);
+            return bot.sendMessage(chatId, "⚠️ Sessão expirada ou incompleta. Por favor, use /start para recomeçar.");
+        }
 
         // Inicia fluxo interativo - AGORA PERGUNTA A LOJA PRIMEIRO
         userStates[chatId] = {
