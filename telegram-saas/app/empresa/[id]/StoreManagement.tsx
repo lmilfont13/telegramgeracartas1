@@ -18,13 +18,29 @@ export default function StoreManagement({ empresaId, initialLojas }: StoreManage
     const handleAddStore = (e: React.FormEvent) => {
         e.preventDefault()
         if (!newStore.trim()) return
-        if (lojas.includes(newStore.trim())) {
-            setMessage({ type: 'error', text: 'Esta loja já está na lista.' })
-            return
-        }
-        setLojas([...lojas, newStore.trim()])
+
+        // Split by comma, trim each, and filter out empty strings
+        const addedStores = newStore.split(',').map(s => s.trim()).filter(s => s !== '')
+
+        const updatedLojas = [...lojas]
+        let hasDuplicate = false
+
+        addedStores.forEach(store => {
+            if (!updatedLojas.includes(store)) {
+                updatedLojas.push(store)
+            } else {
+                hasDuplicate = true
+            }
+        })
+
+        setLojas(updatedLojas)
         setNewStore('')
-        setMessage(null)
+
+        if (hasDuplicate && addedStores.length === 1) {
+            setMessage({ type: 'error', text: 'Esta loja já está na lista.' })
+        } else {
+            setMessage(null)
+        }
     }
 
     const handleRemoveStore = (storeToRemove: string) => {
@@ -70,7 +86,7 @@ export default function StoreManagement({ empresaId, initialLojas }: StoreManage
                     type="text"
                     value={newStore}
                     onChange={(e) => setNewStore(e.target.value)}
-                    placeholder="NOME DA LOJA (EX: LOJA CENTRO)"
+                    placeholder="NOMES DAS LOJAS (EX: LOJA 1, LOJA 2, LOJA 3)"
                     className="flex-1 rounded-xl border-2 border-gray-100 bg-gray-50 p-3 text-xs font-black text-gray-950 placeholder:text-gray-300 outline-none focus:border-blue-600 focus:bg-white transition-all uppercase tracking-widest"
                 />
                 <button
