@@ -53,6 +53,7 @@ const STEPS = {
     AWAITING_CUSTOM_X: 'AWAITING_CUSTOM_X',
     AWAITING_CUSTOM_Y: 'AWAITING_CUSTOM_Y',
     REG_COMP_NAME: 'REG_COMP_NAME',
+    REG_COMP_EMAIL: 'REG_COMP_EMAIL',
     REG_COMP_LOGO: 'REG_COMP_LOGO',
     REG_COMP_STAMP: 'REG_COMP_STAMP',
     REG_COMP_SIGNATURE: 'REG_COMP_SIGNATURE'
@@ -457,8 +458,18 @@ function startBot(botData) {
             // Se estiver definindo nome da nova empresa
             if (state.step === STEPS.REG_COMP_NAME) {
                 state.data.regNome = text;
+                state.step = STEPS.REG_COMP_EMAIL;
+                return bot.sendMessage(chatId, `Nome **${text}** definido.\n\n📧 Agora informe o **E-mail do Responsável**:`);
+            }
+
+            // Se estiver definindo e-mail da nova empresa
+            if (state.step === STEPS.REG_COMP_EMAIL) {
+                if (!text.includes('@')) {
+                    return bot.sendMessage(chatId, "⚠️ Por favor, informe um e-mail válido.");
+                }
+                state.data.regEmail = text;
                 state.step = STEPS.REG_COMP_LOGO;
-                return bot.sendMessage(chatId, `Nome **${text}** definido.\n\n🖼️ Agora envie a imagem do **LOGOTIPO** (PNG transparente recomendado):`);
+                return bot.sendMessage(chatId, `E-mail **${text}** definido.\n\n🖼️ Agora envie a imagem do **LOGOTIPO** (PNG transparente recomendado):`);
             }
 
             // Se estiver selecionando LOJA (Texto Livre)
@@ -610,6 +621,7 @@ function startBot(botData) {
                         .from('empresas')
                         .insert({
                             nome: state.data.regNome,
+                            email_responsavel: state.data.regEmail,
                             logo_url: state.data.regLogo,
                             carimbo_url: state.data.regStamp,
                             carimbo_funcionario_url: url,
