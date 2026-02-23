@@ -506,7 +506,7 @@ function startBot(botData) {
                 state.data.customCoords.y = y;
                 state.data.stampPosition = 'personalizado';
                 // Finaliza e gera PDF
-                return generateAndSendPDF(bot, chatId, state.data, botData);
+                return generateAndSendPDF(bot, chatId, state.data, botData, msg);
             }
 
             // Comportamento Padrão: Busca de Funcionário
@@ -744,7 +744,7 @@ function startBot(botData) {
                 state.data.stampPosition = 'ambos';
                 state.data.customCoords = null;
                 bot.answerCallbackQuery(query.id);
-                return generateAndSendPDF(bot, chatId, state.data, botData);
+                return generateAndSendPDF(bot, chatId, state.data, botData, query);
             }
 
             // 3. Seleção de Loja Predefinida
@@ -877,29 +877,28 @@ async function handleResults(bot, chatId, results, botData) {
 }
 
 // Função Final de Geração
-async function generateAndSendPDF(bot, chatId, data, botData) {
+async function generateAndSendPDF(bot, chatId, data, botData, userMsg) {
     bot.sendMessage(chatId, "⏳ Gerando seu PDF personalizado...");
     bot.sendChatAction(chatId, 'upload_document');
 
     try {
         const { funcionario, templateId, empresaId, stampPosition, customCoords, nomeExibicao } = data;
 
+        // Dados do criador (Telegram)
+        const criado_por_nome = userMsg?.from?.first_name || 'Desconhecido';
+        const criado_por_user = userMsg?.from?.username ? `@${userMsg.from.username}` : `ID: ${chatId}`;
+
         // 1. Busca Template selecionado
         const { data: templateData } = await supabase.from('templates').select('*').eq('id', templateId).single();
         const templateText = templateData?.conteudo || "Olá {{NOME}}, ...";
 
         console.log(`[Worker ${INSTANCE_ID}] 📄 Gerando PDF com Template: "${templateData?.nome || 'Desconhecido'}" (ID: ${templateId})`);
-        console.log(`[Worker ${INSTANCE_ID}] 📝 Tamanho do Conteúdo: ${templateText.length} caracteres.`);
 
-        // 2. Busca Empresa selecionada (para Logo/Carimbos)
+        // ... (rest of logic remains same for rendering)
+        // 2. Busca Empresa selecionada
         const { data: empresa } = await supabase.from('empresas').select('*').eq('id', empresaId).single();
+        if (!empresa) return bot.sendMessage(chatId, "❌ Empresa não encontrada.");
 
-        if (!empresa) {
-            console.error(`[Bot ${botData.nome}] Empresa não encontrada: ${empresaId}`);
-            return bot.sendMessage(chatId, "❌ Erro: Empresa não encontrada no sistema. Tente reiniciar com /start.");
-        }
-
-        // 3. Renderiza Texto
         const botDataWithSelectedCompany = {
             ...botData,
             empresa_id: empresa.id,
@@ -908,12 +907,10 @@ async function generateAndSendPDF(bot, chatId, data, botData) {
         };
         let finalContent = renderTemplate(templateText, funcionario, botDataWithSelectedCompany);
 
-        // 5. Download de Imagens
         const logoBuffer = await downloadImageFromSupabase(empresa.logo_url);
         const carimbo1Buffer = await downloadImageFromSupabase(empresa.carimbo_url);
         const carimbo2Buffer = await downloadImageFromSupabase(empresa.carimbo_funcionario_url);
 
-        // 5. Geração PDF
         const pdfBuffer = await generateSaaSPDF({
             text: finalContent,
             logoUrl: logoBuffer,
@@ -921,13 +918,11 @@ async function generateAndSendPDF(bot, chatId, data, botData) {
             carimbo2Url: carimbo2Buffer,
             stampPosition,
             customCoords,
-            compact: empresa.nome.toLowerCase().includes('atacad'), // Modo compacto para Atacadão
+            compact: empresa.nome.toLowerCase().includes('atacad'),
             footer: empresa.rodape
         });
 
-        // 6. Envio com botões de navegação
-        const caption = `✅ Carta de **${nomeExibicao}** gerada com sucesso!\n\n💡 **Dica**: Para compartilhar com outros aplicativos (WhatsApp, E-mail, etc), clique no arquivo e use o ícone de compartilhar do Telegram.`;
-
+        const caption = `✅ Carta de **${nomeExibicao}** gerada com sucesso!\n\n💡 **Dica**: Use o ícone de compartilhar para exportar o arquivo.`;
         const buttons = [
             [{ text: "📄 Gerar outra carta", callback_data: "m:nova" }],
             [{ text: "🏠 Menu Principal", callback_data: "m:inicio" }]
@@ -942,7 +937,7 @@ async function generateAndSendPDF(bot, chatId, data, botData) {
             contentType: 'application/pdf'
         });
 
-        // 7. Registrar no histórico
+        // 7. Registrar no histórico COM DADOS DE RASTREAMENTO
         try {
             await supabase.from('cartas_geradas').insert({
                 bot_id: botData.id,
@@ -950,19 +945,17 @@ async function generateAndSendPDF(bot, chatId, data, botData) {
                 funcionario_id: funcionario.id,
                 template_id: templateId,
                 nome_arquivo: `Carta_${nomeExibicao.replace(/\s+/g, '_')}.pdf`,
-                nome_funcionario: nomeExibicao
+                nome_funcionario: nomeExibicao,
+                chat_id: String(chatId),
+                criado_por_nome: criado_por_nome,
+                criado_por_user: criado_por_user
             });
-            console.log(`[Bot ${botData.nome}] Registro de geração salvo no banco.`);
+            console.log(`[Bot ${botData.nome}] Registro salvo. Criado por: ${criado_por_user}`);
         } catch (dbErr) {
             console.error(`[Bot ${botData.nome}] Erro ao salvar histórico:`, dbErr);
         }
 
-        // Limpa estado, mas mantém autenticação
-        userStates[chatId] = {
-            ...userStates[chatId],
-            step: STEPS.IDLE,
-            data: {}
-        };
+        userStates[chatId] = { ...userStates[chatId], step: STEPS.IDLE, data: {} };
 
     } catch (e) {
         console.error(`[Bot ${botData.nome}] Erro na geração final:`, e);

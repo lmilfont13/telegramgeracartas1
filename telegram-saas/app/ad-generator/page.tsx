@@ -78,154 +78,151 @@ export default function AdGeneratorPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-8 font-sans">
-            <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white text-center">
-                    <h1 className="text-3xl font-bold flex items-center justify-center gap-2">
-                        <Wand2 className="w-8 h-8" />
-                        Gerador de Anúncios Telegram
+        <div className="min-h-screen bg-white p-8 font-sans">
+            <div className="max-w-3xl mx-auto">
+                <div className="mb-12 flex flex-col items-center text-center">
+                    <div className="h-12 w-12 bg-gray-950 rounded-xl flex items-center justify-center text-white mb-6">
+                        <Wand2 className="w-6 h-6" />
+                    </div>
+                    <h1 className="text-4xl font-black text-gray-950 tracking-tighter uppercase mb-2">
+                        Ad Generator
                     </h1>
-                    <p className="mt-2 opacity-90">Crie copys de alta conversão para Amazon, Mercado Livre e Shopee</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">High-conversion copy for Telegram</p>
                 </div>
 
-                <div className="p-8 space-y-6">
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">URL do Produto</label>
-                            <input
-                                type="text"
-                                value={productUrl}
-                                onChange={(e) => setProductUrl(e.target.value)}
-                                placeholder="https://www.amazon.com.br/..."
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-                            />
-                        </div>
+                <div className="grid gap-8">
+                    <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Product URL</label>
+                                <input
+                                    type="text"
+                                    value={productUrl}
+                                    onChange={(e) => setProductUrl(e.target.value)}
+                                    placeholder="https://www.amazon.com.br/..."
+                                    className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-950 outline-none focus:bg-white focus:border-gray-950 transition-all placeholder:text-gray-300"
+                                />
+                            </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Seu Link de Afiliado</label>
-                            <input
-                                type="text"
-                                value={affiliateLink}
-                                onChange={(e) => setAffiliateLink(e.target.value)}
-                                placeholder="https://amzn.to/..."
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-                            />
-                        </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Affiliate Link</label>
+                                <input
+                                    type="text"
+                                    value={affiliateLink}
+                                    onChange={(e) => setAffiliateLink(e.target.value)}
+                                    placeholder="https://amzn.to/..."
+                                    className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-950 outline-none focus:bg-white focus:border-gray-950 transition-all placeholder:text-gray-300"
+                                />
+                            </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Groq API Key <span className="text-gray-400 font-normal">(opcional se configurado no sistema)</span>
-                            </label>
-                            <input
-                                type="password"
-                                value={groqApiKey}
-                                onChange={(e) => setGroqApiKey(e.target.value)}
-                                placeholder="gsk_..."
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-                            />
-                        </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
+                                    Groq API Key <span className="text-gray-300 font-medium">(optional)</span>
+                                </label>
+                                <input
+                                    type="password"
+                                    value={groqApiKey}
+                                    onChange={(e) => setGroqApiKey(e.target.value)}
+                                    placeholder="gsk_..."
+                                    className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-950 outline-none focus:bg-white focus:border-gray-950 transition-all placeholder:text-gray-300"
+                                />
+                            </div>
 
-                        <button
-                            onClick={handleGenerate}
-                            disabled={loading || !productUrl}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {loading ? (
-                                <>
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                    Gerando Mágica...
-                                </>
-                            ) : (
-                                <>
-                                    <Wand2 className="w-5 h-5" />
-                                    Gerar Anúncio
-                                </>
-                            )}
-                        </button>
+                            <button
+                                onClick={handleGenerate}
+                                disabled={loading || !productUrl}
+                                className="w-full bg-gray-950 hover:bg-gray-800 text-white font-black py-4 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none text-xs uppercase tracking-[0.2em]"
+                            >
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Wand2 className="w-4 h-4" />
+                                        Generate Ad
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
 
                     {error && (
-                        <div className="p-4 bg-red-50 text-red-600 rounded-lg border border-red-100">
-                            Erro: {error}
+                        <div className="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 text-xs font-bold uppercase tracking-widest text-center animate-in zoom-in-95">
+                            Error: {error}
                         </div>
                     )}
 
                     {result && (
-                        <div className="mt-8 border border-gray-200 rounded-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-wrap justify-between items-center gap-4">
-                                <h2 className="font-semibold text-gray-700">Resultado Gerado</h2>
-                                <div className="flex items-center gap-3">
-                                    <button
-                                        onClick={copyToClipboard}
-                                        className="text-gray-600 hover:text-gray-800 flex items-center gap-1 text-sm font-medium transition px-3 py-1 rounded-md hover:bg-gray-200"
-                                    >
-                                        <Copy className="w-4 h-4" />
-                                        Copiar
-                                    </button>
-                                    <button
-                                        onClick={handlePostToTelegram}
-                                        disabled={posting || posted}
-                                        className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-lg transition shadow-sm ${posted
-                                            ? 'bg-green-100 text-green-700'
-                                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:opacity-90 active:scale-95'
-                                            }`}
-                                    >
-                                        {posting ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                Enviando...
-                                            </>
-                                        ) : posted ? (
-                                            <>
-                                                <CheckCircle className="w-4 h-4" />
-                                                Postado!
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Send className="w-4 h-4" />
-                                                Enviar para o Canal
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="p-6 grid md:grid-cols-2 gap-6">
-                                <div className="space-y-4">
-                                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Preview da Copy</h3>
-                                    <div className="bg-white p-4 rounded-lg border border-gray-200 whitespace-pre-wrap font-mono text-sm text-gray-800 shadow-sm leading-relaxed">
-                                        {result.adCopy}
+                        <div className="grid gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                                <div className="px-8 py-4 border-b border-gray-100 flex items-center justify-between">
+                                    <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Generated Copy</h2>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={copyToClipboard}
+                                            className="p-2 text-gray-400 hover:text-gray-950 hover:bg-gray-50 rounded-lg transition-all"
+                                            title="Copy to clipboard"
+                                        >
+                                            <Copy className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={handlePostToTelegram}
+                                            disabled={posting || posted}
+                                            className={`flex items-center gap-2 text-[10px] font-black px-5 py-2 rounded-lg transition-all active:scale-95 uppercase tracking-widest ${posted
+                                                ? 'bg-green-50 text-green-600'
+                                                : 'bg-gray-950 text-white hover:bg-gray-800'
+                                                }`}
+                                        >
+                                            {posting ? (
+                                                <Loader2 className="w-3 h-3 animate-spin" />
+                                            ) : posted ? (
+                                                <CheckCircle className="w-3 h-3" />
+                                            ) : (
+                                                <Send className="w-3 h-3" />
+                                            )}
+                                            {posting ? 'Posting...' : posted ? 'Posted!' : 'Push to Channel'}
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div className="space-y-4">
-                                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Dados Extraídos</h3>
-                                    <div className="space-y-3">
-                                        {result.image && (
-                                            <div className="relative aspect-square w-full bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm flex items-center justify-center p-4">
-                                                <img
-                                                    src={result.image}
-                                                    alt="Produto data"
-                                                    className="w-full h-full object-contain"
-                                                />
-                                            </div>
-                                        )}
+                                <div className="p-8">
+                                    <div className="bg-gray-50 p-6 rounded-xl border border-transparent whitespace-pre-wrap font-mono text-sm text-gray-800 leading-relaxed">
+                                        {result.adCopy}
+                                    </div>
+                                </div>
+                            </div>
 
-                                        <div className="grid grid-cols-2 gap-4 text-sm">
-                                            <div className="bg-gray-50 p-3 rounded">
-                                                <span className="block text-gray-500 text-xs">Preço</span>
-                                                <span className="font-bold text-green-600">R$ {result.price}</span>
-                                            </div>
-                                            <div className="bg-gray-50 p-3 rounded">
-                                                <span className="block text-gray-500 text-xs">Parcelamento</span>
-                                                <span className="font-medium">{result.installments || 'N/A'}</span>
-                                            </div>
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col items-center justify-center">
+                                    <h3 className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-4 w-full text-center">Visual Identity</h3>
+                                    {result.image && (
+                                        <div className="relative aspect-square w-full max-w-[200px] bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center p-4">
+                                            <img
+                                                src={result.image}
+                                                alt="Product"
+                                                className="w-full h-full object-contain"
+                                            />
                                         </div>
+                                    )}
+                                </div>
 
-                                        <div className="bg-gray-50 p-3 rounded text-sm">
-                                            <span className="block text-gray-500 text-xs mb-1">Título Original</span>
-                                            <p className="line-clamp-2 text-gray-700">{result.title}</p>
+                                <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+                                    <h3 className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Extracted Data</h3>
+                                    <div className="grid grid-cols-2 gap-3 text-center">
+                                        <div className="bg-gray-50 p-4 rounded-xl">
+                                            <span className="block text-[8px] text-gray-400 uppercase font-black tracking-widest mb-1">Price</span>
+                                            <span className="text-sm font-black text-gray-950">R$ {result.price}</span>
                                         </div>
+                                        <div className="bg-gray-50 p-4 rounded-xl">
+                                            <span className="block text-[8px] text-gray-400 uppercase font-black tracking-widest mb-1">Status</span>
+                                            <span className="text-[10px] font-black text-gray-950 uppercase">{result.installments ? 'Installments' : 'Direct'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-gray-50 p-4 rounded-xl">
+                                        <span className="block text-[8px] text-gray-400 uppercase font-black tracking-widest mb-1">Original Title</span>
+                                        <p className="text-[10px] font-bold text-gray-600 line-clamp-2 leading-relaxed">{result.title}</p>
                                     </div>
                                 </div>
                             </div>

@@ -94,24 +94,30 @@ app.get('/login', (req, res) => {
         <head>
             <title>SaaS Login</title>
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+            <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;900&display=swap" rel="stylesheet">
             <style>
-                body { margin: 0; padding: 0; font-family: 'Outfit', sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; background: #0f172a; color: white; }
-                .card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); padding: 2.5rem; border-radius: 1.5rem; border: 1px solid rgba(255,255,255,0.1); width: 100%; max-width: 350px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); text-align: center; }
-                h1 { margin-bottom: 2rem; font-weight: 600; font-size: 1.8rem; background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-                input { width: 100%; padding: 0.8rem; margin-bottom: 1.5rem; border-radius: 0.75rem; border: 1px solid rgba(255,255,255,0.1); background: rgba(15, 23, 42, 0.5); color: white; box-sizing: border-box; font-size: 1rem; transition: border-color 0.3s; }
-                input:focus { outline: none; border-color: #60a5fa; }
-                button { width: 100%; padding: 0.8rem; border-radius: 0.75rem; border: none; background: linear-gradient(to right, #3b82f6, #8b5cf6); color: white; font-weight: 600; font-size: 1rem; cursor: pointer; transition: transform 0.2s, opacity 0.2s; }
-                button:hover { opacity: 0.9; transform: translateY(-2px); }
-                .error { color: #f87171; margin-bottom: 1rem; font-size: 0.9rem; }
+                body { margin: 0; padding: 0; font-family: 'Outfit', sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; background: #FFFFFF; color: #000000; -webkit-font-smoothing: antialiased; }
+                .card { padding: 3rem; border-radius: 2rem; border: 1px solid #F1F5F9; width: 100%; max-width: 360px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05); text-align: center; }
+                .logo { height: 3rem; w-height: 3rem; background: #000; border-radius: 1rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem; }
+                h1 { margin-bottom: 0.5rem; font-weight: 900; font-size: 1.5rem; text-transform: uppercase; letter-spacing: -0.02em; }
+                p { font-size: 0.8rem; color: #94A3B8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 2.5rem; }
+                input { width: 100%; padding: 1rem; margin-bottom: 1.5rem; border-radius: 1rem; border: 1px solid #F1F5F9; background: #F8FAFC; color: #000; box-sizing: border-box; font-size: 1rem; transition: all 0.2s; font-weight: 600; }
+                input:focus { outline: none; border-color: #000; background: #FFF; }
+                button { width: 100%; padding: 1rem; border-radius: 1rem; border: none; background: #000; color: white; font-weight: 900; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.15em; }
+                button:hover { background: #1E293B; transform: translateY(-2px); }
+                button:active { transform: scale(0.98); }
             </style>
         </head>
         <body>
             <div class="card">
-                <h1>Painel SaaS</h1>
+                <div class="logo">
+                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+                </div>
+                <h1>SaaS Access</h1>
+                <p>Engine Panel</p>
                 <form action="/login" method="POST">
-                    <input type="password" name="password" placeholder="Senha de Acesso" autofocus required>
-                    <button type="submit">Entrar</button>
+                    <input type="password" name="password" placeholder="PASSWORD" autofocus required>
+                    <button type="submit">Sign In</button>
                 </form>
             </div>
         </body>
@@ -138,85 +144,111 @@ app.get('/', auth, (req, res) => {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Painel de Controle SaaS</title>
+            <title>SaaS Engine Panel</title>
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+            <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;900&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+            <script src="https://unpkg.com/lucide@latest"></script>
             <style>
-                body { margin: 0; padding: 0; font-family: 'Outfit', sans-serif; background: #0f172a; color: white; min-height: 100vh; padding: 2rem; box-sizing: border-box; }
-                .container { max-width: 900px; margin: 0 auto; }
-                header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-                h1 { margin: 0; font-weight: 600; background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-                .status-badge { padding: 0.4rem 1rem; border-radius: 2rem; font-size: 0.85rem; font-weight: 600; background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255,255,255,0.1); }
-                .status-on { border-color: #22c55e; color: #22c55e; box-shadow: 0 0 10px rgba(34, 197, 94, 0.2); }
-                .status-off { border-color: #ef4444; color: #ef4444; }
+                body { margin: 0; padding: 0; font-family: 'Outfit', sans-serif; background: #FFFFFF; color: #000000; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+                .main-layout { display: flex; min-height: 100vh; }
                 
-                .grid { display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; }
-                @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+                /* Sidebar Style integrated with top header */
+                .container { max-width: 1000px; margin: 0 auto; padding: 3rem 2rem; width: 100%; }
                 
-                .panel { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(8px); border-radius: 1.25rem; border: 1px solid rgba(255,255,255,0.05); padding: 1.5rem; }
-                .controls { display: flex; flex-direction: column; gap: 1rem; }
+                header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4rem; padding-bottom: 2rem; border-bottom: 1px solid #F1F5F9; }
+                h1 { margin: 0; font-weight: 900; font-size: 1.75rem; text-transform: uppercase; letter-spacing: -0.04em; }
+                header p { margin: 0.2rem 0 0 0; color: #94A3B8; font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.15em; }
                 
-                button { padding: 0.8rem; border-radius: 0.75rem; border: none; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.95rem; }
-                button:hover { filter: brightness(1.1); transform: translateY(-2px); }
-                button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+                .header-actions { display: flex; align-items: center; gap: 1.5rem; }
+                .status-badge { padding: 0.5rem 1rem; border-radius: 0.75rem; font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; border: 1px solid transparent; transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem; }
+                .status-on { background: #ECFDF5; border-color: #10B981; color: #059669; }
+                .status-on::before { content: ''; width: 6px; height: 6px; background: #10B981; border-radius: 50%; display: inline-block; animation: pulse 2s infinite; }
+                .status-off { background: #F8FAFC; border-color: #E2E8F0; color: #64748B; }
                 
-                .btn-start { background: #22c55e; color: white; }
-                .btn-stop { background: #ef4444; color: white; }
-                .btn-restart { background: #3b82f6; color: white; }
-                .btn-cleanup { background: rgba(100, 116, 139, 0.5); color: #cbd5e1; border: 1px solid #64748b; margin-top: 1rem; }
-                .btn-logout { background: transparent; color: #94a3b8; border: 1px solid #334155; font-size: 0.8rem; padding: 0.4rem 0.8rem; }
+                .grid { display: grid; grid-template-columns: 280px 1fr; gap: 3rem; }
+                @media (max-width: 900px) { .grid { grid-template-columns: 1fr; gap: 2rem; } }
                 
-                .console { background: #020617; border-radius: 0.75rem; border: 1px solid #1e293b; height: 400px; display: flex; flex-direction: column; }
-                .console-header { padding: 0.75rem 1rem; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; color: #94a3b8; font-size: 0.8rem; }
-                .console-body { flex: 1; padding: 1rem; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.85rem; display: flex; flex-direction: column-reverse; }
-                .log-line { margin-bottom: 0.4rem; border-left: 2px solid #334155; padding-left: 0.6rem; }
-                .log-time { color: #475569; margin-right: 0.5rem; font-size: 0.75rem; }
-                .log-content { color: #e2e8f0; }
+                .panel { background: #FFFFFF; border-radius: 1.5rem; border: 1px solid #F1F5F9; padding: 2rem; box-shadow: 0 4px 20px -10px rgba(0,0,0,0.03); }
+                .section-title { font-size: 0.65rem; font-weight: 900; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.2em; margin: 0 0 1.5rem 0; display: flex; align-items: center; gap: 0.75rem; }
+                .section-title i { width: 14px; height: 14px; }
+                
+                .controls { display: flex; flex-direction: column; gap: 0.75rem; }
+                
+                button { padding: 1rem; border-radius: 1rem; border: 1px solid transparent; font-weight: 800; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.75rem; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; }
+                button:hover { transform: translateY(-2px); box-shadow: 0 8px 15px -10px rgba(0,0,0,0.1); }
+                button:disabled { opacity: 0.3; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+                
+                .btn-start { background: #000000; color: #FFFFFF; }
+                .btn-stop { background: #FFFFFF; border-color: #FEE2E2; color: #EF4444; }
+                .btn-stop:hover { background: #FEF2F2; }
+                .btn-restart { background: #F8FAFC; border-color: #F1F5F9; color: #1E293B; }
+                .btn-cleanup { background: #FFFFFF; border-color: #F1F5F9; color: #94A3B8; margin-top: 1rem; font-size: 0.6rem; border-style: dashed; }
+                .btn-cleanup:hover { color: #EF4444; border-color: #FEE2E2; }
+                .btn-logout { background: transparent; color: #94A3B8; border: none; font-size: 0.65rem; padding: 0.5rem; font-weight: 800; border-radius: 0.5rem; }
+                .btn-logout:hover { background: #F8FAFC; color: #000; }
+                
+                .terminal-container { background: #FFFFFF; border-radius: 1.5rem; border: 1px solid #F1F5F9; overflow: hidden; display: flex; flex-direction: column; height: 500px; box-shadow: 0 4px 25px -10px rgba(0,0,0,0.05); }
+                .terminal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #F1F5F9; display: flex; justify-content: space-between; align-items: center; background: #F8FAFC; }
+                .terminal-title { font-size: 0.6rem; font-weight: 900; color: #64748B; text-transform: uppercase; letter-spacing: 0.2em; display: flex; align-items: center; gap: 0.5rem; }
+                .log-count { font-size: 0.6rem; font-weight: 800; color: #94A3B8; background: #FFFFFF; padding: 0.25rem 0.6rem; border-radius: 0.5rem; border: 1px solid #F1F5F9; }
+                
+                .console-body { flex: 1; padding: 1.5rem; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; display: flex; flex-direction: column-reverse; background: #FFFFFF; }
+                .log-line { margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid #F8FAFC; display: flex; gap: 1rem; line-height: 1.6; }
+                .log-time { color: #CBD5E1; font-weight: 500; white-space: nowrap; flex-shrink: 0; font-size: 0.65rem; pt: 0.1rem; }
+                .log-content { color: #1E293B; word-break: break-all; }
+                .log-content.system { color: #10B981; font-weight: 700; }
+                .log-content.error { color: #EF4444; font-weight: 700; }
 
-                /* Custom Scrollbar */
-                ::-webkit-scrollbar { width: 6px; }
+                @keyframes pulse {
+                    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+                    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+                    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+                }
+
+                ::-webkit-scrollbar { width: 5px; }
                 ::-webkit-scrollbar-track { background: transparent; }
-                ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+                ::-webkit-scrollbar-thumb { background: #F1F5F9; border-radius: 10px; }
+                ::-webkit-scrollbar-thumb:hover { background: #E2E8F0; }
             </style>
         </head>
         <body>
             <div class="container">
                 <header>
                     <div>
-                        <h1>SaaS Engine</h1>
-                        <p style="color: #64748b; margin: 0.2rem 0 0 0; font-size: 0.9rem;">Gerador de Cartas v3.1</p>
+                        <h1>Gerador de Cartas</h1>
+                        <p>Engine Controller v3.1</p>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div class="header-actions">
                         <div id="status" class="status-badge status-off">OFFLINE</div>
-                        <a href="/logout"><button class="btn-logout">Sair</button></a>
+                        <a href="/logout" title="Sign Out"><button class="btn-logout"><i data-lucide="log-out" style="width: 14px; height: 14px;"></i></button></a>
                     </div>
                 </header>
 
                 <div class="grid">
                     <div class="panel">
-                        <h3 style="margin-top: 0;">Controles</h3>
+                        <h3 class="section-title"><i data-lucide="sliders"></i> Operations</h3>
                         <div class="controls">
-                            <button id="start" class="btn-start">🚀 Iniciar</button>
-                            <button id="stop" class="btn-stop">🛑 Parar</button>
-                            <button id="restart" class="btn-restart">🔄 Reiniciar</button>
-                            <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.05); margin: 0.5rem 0;">
-                            <button id="cleanup" class="btn-cleanup">🛠️ Limpar Conflitos</button>
+                            <button id="start" class="btn-start"><i data-lucide="play" style="width: 14px; height: 14px;"></i> Iniciar</button>
+                            <button id="stop" class="btn-stop"><i data-lucide="square" style="width: 14px; height: 14px;"></i> Parar</button>
+                            <button id="restart" class="btn-restart"><i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Reiniciar</button>
+                            <button id="cleanup" class="btn-cleanup"><i data-lucide="shield-alert" style="width: 12px; height: 12px;"></i> Limpar Conflitos</button>
                         </div>
                     </div>
 
-                    <div class="panel" style="padding: 1rem;">
-                        <div class="console">
-                            <div class="console-header">
-                                <span>TERMINAL</span>
-                                <span id="log-count">0 logs</span>
-                            </div>
-                            <div id="logs" class="console-body"></div>
+                    <div class="terminal-container">
+                        <div class="terminal-header">
+                            <div class="terminal-title"><i data-lucide="terminal" style="width: 12px; height: 12px;"></i> Runtime Logs</div>
+                            <span id="log-count" class="log-count">0 logs</span>
                         </div>
+                        <div id="logs" class="console-body"></div>
                     </div>
                 </div>
             </div>
 
             <script>
+                // Initialize Lucide icons
+                lucide.createIcons();
+
                 async function updateStatus() {
                     const res = await fetch('/status');
                     const data = await res.json();
@@ -237,32 +269,45 @@ app.get('/', auth, (req, res) => {
                     }
                 }
 
+                function getLogClass(content) {
+                    if (content.includes('🚀') || content.includes('✅')) return 'system';
+                    if (content.includes('🛑') || content.includes('⚠️') || content.includes('error') || content.includes('Erro')) return 'error';
+                    return '';
+                }
+
                 async function fetchLogs() {
                     const res = await fetch('/get-logs');
                     const data = await res.json();
                     const logsDiv = document.getElementById('logs');
-                    const logCount = document.getElementById('log-count');
+                    const logCountLabel = document.getElementById('log-count');
                     
-                    logCount.innerText = data.length + ' logs';
-                    logsDiv.innerHTML = data.reverse().map(l => \`
-                        <div class="log-line">
-                            <span class="log-time">[\${l.time}]</span>
-                            <span class="log-content">\${l.content}</span>
-                        </div>
-                    \`).join('');
+                    logCountLabel.innerText = data.length + ' logs';
+                    
+                    // Only update if logs changed to avoid flicker
+                    const currentHtml = data.reverse().map(l => `
+        < div class= "log-line" >
+                            <span class="log-time">${l.time}</span>
+                            <span class="log-content ${getLogClass(l.content)}">${l.content}</span>
+                        </div >
+        `).join('');
+                    
+                    if (logsDiv.innerHTML !== currentHtml) {
+                        logsDiv.innerHTML = currentHtml;
+                    }
                 }
 
-                document.getElementById('start').onclick = () => fetch('/start', { method: 'POST' });
-                document.getElementById('stop').onclick = () => fetch('/stop', { method: 'POST' });
-                document.getElementById('restart').onclick = () => fetch('/restart', { method: 'POST' });
+                document.getElementById('start').onclick = () => fetch('/start', { method: 'POST' }).then(() => updateStatus());
+                document.getElementById('stop').onclick = () => fetch('/stop', { method: 'POST' }).then(() => updateStatus());
+                document.getElementById('restart').onclick = () => fetch('/restart', { method: 'POST' }).then(() => updateStatus());
                 document.getElementById('cleanup').onclick = async () => {
                     if (confirm('Isso vai encerrar TODOS os processos de bot rodando no sistema. Continuar?')) {
                         await fetch('/cleanup', { method: 'POST' });
+                        updateStatus();
                     }
                 };
 
-                setInterval(updateStatus, 1000);
-                setInterval(fetchLogs, 1000);
+                setInterval(updateStatus, 2000);
+                setInterval(fetchLogs, 2000);
                 updateStatus();
                 fetchLogs();
             </script>

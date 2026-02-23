@@ -115,46 +115,46 @@ export default function EmployeeUploadInteractive({ botId }: { botId: string }) 
         <div className="space-y-4">
             {step === 1 ? (
                 <div className="flex flex-col gap-4">
-                    <div className="relative group border-2 border-dashed border-gray-200 rounded-2xl p-8 hover:border-blue-400 transition-colors bg-gray-50/30 text-center">
+                    <div className="relative group border border-dashed border-gray-200 rounded-xl p-8 hover:border-gray-950 transition-colors bg-gray-50 text-center">
                         <input
                             type="file"
                             onChange={handleFileChange}
                             accept=".xlsx,.xls,.csv"
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         />
-                        <FileSpreadsheet className="h-10 w-10 text-gray-400 mx-auto mb-3 group-hover:scale-110 transition-transform" />
-                        <p className="text-sm font-bold text-gray-700">Clique ou arraste sua planilha aqui</p>
-                        <p className="text-xs text-gray-400 mt-1">Excel (.xlsx, .xls) ou CSV</p>
+                        <FileSpreadsheet className="h-8 w-8 text-gray-400 mx-auto mb-3 group-hover:scale-110 transition-transform" />
+                        <p className="text-xs font-bold text-gray-950 uppercase tracking-widest">Select Spreadsheet</p>
+                        <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">Excel or CSV</p>
                     </div>
 
                     <button
                         onClick={handleDeleteAll}
                         disabled={loading}
-                        className="w-fit self-center px-4 py-2 text-xs font-bold text-red-500 hover:text-white border border-red-200 hover:bg-red-500 rounded-xl transition-all flex items-center gap-2 group shadow-sm bg-white"
+                        className="w-fit self-center px-4 py-2 text-[9px] font-bold text-gray-400 hover:text-red-600 border border-gray-100 hover:border-red-100 hover:bg-red-50 rounded-lg transition-all flex items-center gap-2 group bg-white uppercase tracking-widest"
                     >
-                        <Trash2 className="h-3 w-3 group-hover:rotate-12 transition-transform" />
-                        LIMPAR BASE (EXCLUIR TUDO)
+                        <Trash2 className="h-3 w-3" />
+                        Clear Database
                     </button>
                 </div>
             ) : (
-                <div className="bg-blue-50/50 rounded-2xl p-6 border border-blue-100 animate-in fade-in slide-in-from-top-2">
-                    <div className="flex items-center gap-2 mb-4 text-blue-700">
-                        <MapIcon className="h-4 w-4" />
-                        <h3 className="text-sm font-black uppercase tracking-wider">Mapear Colunas</h3>
+                <div className="bg-gray-50 rounded-xl p-6 border border-gray-100 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-2 mb-4 text-gray-950">
+                        <MapIcon className="h-3.w-3.5" />
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest">Map Columns</h3>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         {(Object.keys(mapping) as Array<keyof Mapping>).map((field) => (
                             <div key={field} className="space-y-1">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">
-                                    {field === 'data_admissao' ? 'Data de Admissão' : field.charAt(0).toUpperCase() + field.slice(1)}
+                                <label className="text-[9px] font-bold text-gray-400 uppercase ml-1 tracking-widest">
+                                    {field === 'data_admissao' ? 'Admission Date' : field}
                                 </label>
                                 <select
                                     value={mapping[field]}
                                     onChange={(e) => setMapping({ ...mapping, [field]: e.target.value })}
-                                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-[10px] font-bold text-gray-950 focus:border-gray-950 outline-none shadow-sm uppercase tracking-wider"
                                 >
-                                    <option value="">-- Selecione uma coluna --</option>
+                                    <option value="">-- SELECT COLUMN --</option>
                                     {headers.map(h => (
                                         <option key={h} value={h}>{h}</option>
                                     ))}
@@ -167,20 +167,20 @@ export default function EmployeeUploadInteractive({ botId }: { botId: string }) 
                         <button
                             onClick={handleSubmit}
                             disabled={loading || !mapping.nome}
-                            className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95 disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2"
+                            className="flex-1 bg-gray-950 text-white font-bold py-3 rounded-lg hover:bg-gray-800 transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.2em]"
                         >
                             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                            Confirmar Importação
+                            Confirm Import
                         </button>
                         <button
                             onClick={() => setStep(1)}
-                            className="px-4 py-3 border border-gray-200 bg-white text-gray-500 font-bold rounded-xl hover:bg-gray-50 transition-all active:scale-95"
+                            className="px-5 py-3 border border-gray-200 bg-white text-gray-400 text-[10px] font-bold rounded-lg hover:text-gray-950 transition-all active:scale-95 uppercase tracking-widest"
                         >
-                            Cancelar
+                            Cancel
                         </button>
                     </div>
                     {!mapping.nome && (
-                        <p className="text-[10px] text-orange-500 font-bold mt-3">* O campo Nome é obrigatório para continuar.</p>
+                        <p className="text-[9px] text-gray-400 font-bold mt-3 uppercase tracking-widest">* Name field is required.</p>
                     )}
                 </div>
             )}

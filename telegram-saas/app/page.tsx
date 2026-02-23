@@ -31,17 +31,17 @@ export default async function Dashboard() {
     const { data: cartas } = await supabase.from("cartas_geradas").select("*").order('criado_em', { ascending: false }).limit(6);
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC]">
+        <div className="min-h-screen bg-white">
             {/* SIDEBAR NAVIGATION */}
-            <aside className="fixed left-0 top-0 hidden h-screen w-72 border-r border-gray-200 bg-white lg:block">
+            <aside className="fixed left-0 top-0 hidden h-screen w-72 border-r border-gray-100 bg-gray-950 lg:block lg:z-40">
                 <div className="flex h-full flex-col p-8">
-                    <div className="mb-12 flex items-center gap-3">
-                        <div className="h-10 w-10 bg-blue-600 rounded-xl flex items-center justify-center text-white">
+                    <div className="mb-12 flex items-center gap-4">
+                        <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center text-gray-950 shadow-2xl">
                             <Bot className="h-6 w-6 stroke-[2.5]" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-black tracking-tight text-gray-950 leading-none">TELEGRAM</h1>
-                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-1">SaaS MANAGER</p>
+                            <h1 className="text-xl font-black tracking-tighter text-white leading-none">GERAL</h1>
+                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mt-1.5">SaaS Engine</p>
                         </div>
                     </div>
 
@@ -55,25 +55,25 @@ export default async function Dashboard() {
                             <a
                                 key={item.name}
                                 href={item.active ? '#' : item.href}
-                                className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold uppercase tracking-wider transition-all ${item.active
-                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                                    : 'text-gray-400 hover:bg-gray-50 hover:text-gray-900'
+                                className={`flex items-center gap-3 rounded-xl px-5 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${item.active
+                                    ? 'bg-white text-gray-950 shadow-xl scale-[1.02]'
+                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
                                     }`}
                             >
-                                <item.icon className="h-5 w-5" />
+                                <item.icon className={`h-4 w-4 ${item.active ? 'stroke-[2.5]' : 'stroke-[2]'}`} />
                                 {item.name}
                             </a>
                         ))}
                     </nav>
 
-                    <div className="mt-auto pt-8 border-t border-gray-100">
-                        <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                    <div className="mt-auto pt-8 border-t border-white/10">
+                        <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/5 backdrop-blur-sm">
                             <div className="flex-1 overflow-hidden">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{user.email?.split('@')[0]}</p>
-                                <p className="text-[9px] text-blue-600 font-black uppercase tracking-widest">ADMIN MASTER</p>
+                                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1">{user.email?.split('@')[0]}</p>
+                                <p className="text-[9px] text-white font-black uppercase tracking-[0.3em] opacity-80">ADMIN MASTER</p>
                             </div>
                             <form action="/auth/signout" method="post">
-                                <button className="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                                <button className="p-2 text-gray-500 hover:text-white transition-all hover:rotate-12">
                                     <LogOut className="h-4 w-4" />
                                 </button>
                             </form>
@@ -84,107 +84,135 @@ export default async function Dashboard() {
 
             {/* MAIN CONTENT */}
             <main className="lg:pl-72">
-                <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-gray-100 bg-white/80 backdrop-blur-md px-8">
-                    <h2 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em]">Painel de Controle</h2>
-                    <div className="flex items-center gap-4">
-                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest text-xs">Sistemas Online</span>
+                <header className="sticky top-0 z-30 flex h-24 items-center justify-between border-b border-gray-50 bg-white/50 backdrop-blur-xl px-12">
+                    <div>
+                        <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em] mb-1">Central Console</h2>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-black text-gray-950 uppercase tracking-tighter">System Overview</span>
+                            <div className="h-1.5 w-1.5 rounded-full bg-gray-950 animate-pulse"></div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-full border border-gray-100">
+                            <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
+                            <span className="text-[10px] font-black text-gray-950 uppercase tracking-widest">Live Engine</span>
+                        </div>
                     </div>
                 </header>
 
-                <div className="p-8">
+                <div className="p-12 max-w-[1400px] mx-auto">
                     {/* STATS HERO */}
-                    <div className="mb-12 grid gap-6 md:grid-cols-3">
+                    <div className="mb-16 grid gap-8 md:grid-cols-3">
                         {[
-                            { label: 'Marcas Ativas', val: companiesCount, icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
-                            { label: 'Instâncias Bot', val: botsCount, icon: Bot, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-                            { label: 'Cartas Geradas', val: totalLetters, icon: FileText, color: 'text-purple-600', bg: 'bg-purple-50' }
+                            { label: 'Active Brands', val: companiesCount, icon: Building2 },
+                            { label: 'Bot Instances', val: botsCount, icon: Bot },
+                            { label: 'Total Output', val: totalLetters, icon: FileText }
                         ].map((s, i) => (
-                            <div key={i} className="relative overflow-hidden bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm group hover:shadow-xl transition-all">
-                                <div className={`mb-6 h-12 w-12 ${s.bg} ${s.color} rounded-2xl flex items-center justify-center`}>
-                                    <s.icon className="h-6 w-6 stroke-[2.5]" />
-                                </div>
-                                <h3 className="text-4xl font-black text-gray-950 tabular-nums mb-1 tracking-tighter">{s.val || 0}</h3>
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em]">{s.label}</p>
-                                <div className="absolute top-0 right-0 p-4 opacity-5">
+                            <div key={i} className="group relative overflow-hidden bg-white p-10 rounded-3xl border border-gray-100 shadow-sm transition-all hover:shadow-2xl hover:shadow-gray-200/50 hover:-translate-y-1 duration-500">
+                                <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity duration-500">
                                     <s.icon className="h-24 w-24" />
                                 </div>
+                                <div className="mb-8 h-12 w-12 bg-gray-50 text-gray-950 rounded-2xl flex items-center justify-center border border-gray-100 group-hover:bg-gray-950 group-hover:text-white transition-all duration-500">
+                                    <s.icon className="h-5 w-5 stroke-[2.5]" />
+                                </div>
+                                <h3 className="text-5xl font-black text-gray-950 tabular-nums tracking-tighter mb-2 italic">
+                                    {s.val || 0}
+                                </h3>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">{s.label}</p>
                             </div>
                         ))}
                     </div>
 
-                    <div className="grid gap-8 lg:grid-cols-12">
+                    <div className="grid gap-12 lg:grid-cols-12">
                         {/* BOTS COL */}
-                        <div className="lg:col-span-8 space-y-8">
+                        <div className="lg:col-span-12 xl:col-span-8 space-y-12">
                             <section>
-                                <header className="flex items-center justify-between mb-6">
-                                    <h2 className="text-xl font-black text-gray-950 uppercase tracking-tight flex items-center gap-3">
-                                        <Bot className="h-6 w-6 text-blue-600" />
-                                        Meus Bots
-                                    </h2>
+                                <header className="flex items-center justify-between mb-10">
+                                    <div className="flex flex-col">
+                                        <h2 className="text-2xl font-black text-gray-950 uppercase tracking-tighter mb-1 select-none">
+                                            Active Instances
+                                        </h2>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Manage your telegram workers</p>
+                                    </div>
+                                    <div className="h-[1px] flex-1 bg-gray-100 mx-8 hidden sm:block"></div>
                                 </header>
 
                                 <div className="grid gap-6 md:grid-cols-2">
                                     {bots?.map((bot) => (
-                                        <div key={bot.id} className="group relative bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-blue-500/10 transition-all border-b-4 border-b-transparent hover:border-b-blue-600">
-                                            <div className="mb-6 flex items-center justify-between">
-                                                <div className="h-12 w-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                                                    <Bot className="h-6 w-6" />
+                                        <div key={bot.id} className="group relative bg-white p-8 rounded-3xl border border-gray-100 shadow-sm transition-all hover:border-gray-950 duration-500">
+                                            <div className="mb-10 flex items-center justify-between">
+                                                <div className="h-14 w-14 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-300 border border-gray-100 group-hover:bg-gray-950 group-hover:text-white group-hover:shadow-xl transition-all duration-500">
+                                                    <Bot className="h-7 w-7 stroke-[1.5]" />
                                                 </div>
-                                                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${bot.ativo ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                                                    {bot.ativo ? 'Conectado' : 'Desconectado'}
-                                                </span>
+                                                <div className="flex flex-col items-end">
+                                                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all duration-500 ${bot.ativo ? 'bg-gray-950 text-white border-transparent' : 'bg-white text-gray-300 border-gray-100'}`}>
+                                                        {bot.ativo ? 'Active' : 'Standby'}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <h3 className="text-lg font-black text-gray-950 mb-4">{bot.nome}</h3>
-                                            <a href={`/bot/${bot.id}`} className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gray-950 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-white hover:bg-blue-600 transition-all shadow-lg active:scale-95">
+                                            <h3 className="text-lg font-black text-gray-950 mb-6 uppercase tracking-tight">{bot.nome}</h3>
+                                            <a href={`/bot/${bot.id}`} className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gray-50 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-950 hover:bg-gray-950 hover:text-white transition-all duration-300 active:scale-[0.98]">
                                                 <Settings2 className="h-4 w-4" />
-                                                Configurar Bot
+                                                Control Center
                                             </a>
                                         </div>
                                     ))}
 
-                                    <div className="flex flex-col items-center justify-center rounded-[32px] border-2 border-dashed border-gray-200 bg-gray-50/50 p-8 text-center hover:border-blue-600 hover:bg-white transition-all group">
-                                        <Plus className="h-10 w-10 text-gray-300 group-hover:text-blue-600 mb-4 transition-colors" />
-                                        <h3 className="text-sm font-black text-gray-950 uppercase tracking-tighter mb-4">Adicionar Novo Instância</h3>
+                                    <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-gray-200 bg-gray-50/30 p-8 text-center transition-all group hover:border-gray-400 hover:bg-white duration-500">
+                                        <div className="h-14 w-14 rounded-2xl bg-white border border-gray-100 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:shadow-xl transition-all duration-500">
+                                            <Plus className="h-6 w-6 text-gray-400 group-hover:text-gray-950" />
+                                        </div>
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-6">Provision New Instance</h3>
                                         <form action={async (fd) => { 'use server'; await createBot(fd); }} className="w-full space-y-3">
-                                            <input name="nome" placeholder="NOME DO BOT" className="w-full rounded-2xl border border-gray-200 bg-white p-4 text-[10px] font-black uppercase tracking-widest focus:border-blue-600 focus:ring-4 focus:ring-blue-50 outline-none transition-all" required />
-                                            <input name="token" placeholder="TOKEN DO TELEGRAM" className="w-full rounded-2xl border border-gray-200 bg-white p-4 text-[10px] font-black uppercase tracking-widest font-mono focus:border-blue-600 focus:ring-4 focus:ring-blue-50 outline-none transition-all" required />
-                                            <button className="w-full rounded-2xl bg-blue-600 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-white hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all active:scale-95">
-                                                CRIAR BOT
+                                            <input name="nome" placeholder="INSTANCE NAME" className="w-full rounded-2xl border border-transparent bg-white p-4 text-[10px] font-black uppercase tracking-widest focus:bg-white focus:border-gray-950 outline-none transition-all shadow-sm" required />
+                                            <input name="token" placeholder="TELEGRAM API TOKEN" className="w-full rounded-2xl border border-transparent bg-white p-4 text-[11px] font-bold tracking-widest font-mono focus:bg-white focus:border-gray-950 outline-none transition-all shadow-sm" required />
+                                            <button className="w-full rounded-2xl bg-gray-950 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-white hover:bg-gray-800 transition-all active:scale-95 shadow-xl shadow-gray-200">
+                                                Deploy Bot
                                             </button>
                                         </form>
                                     </div>
                                 </div>
                             </section>
 
-                            <section id="historico" className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
-                                <header className="flex items-center gap-3 mb-8">
-                                    <History className="h-6 w-6 text-purple-600" />
-                                    <h2 className="text-xl font-black text-gray-950 uppercase tracking-tight">Atividade Recente</h2>
+                            <section id="historico" className="bg-white p-10 rounded-[32px] border border-gray-100 shadow-sm relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-8 opacity-[0.02]">
+                                    <History className="h-32 w-32" />
+                                </div>
+                                <header className="flex items-center gap-4 mb-10">
+                                    <div className="h-10 w-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-950 border border-gray-100 font-black italic">H</div>
+                                    <div>
+                                        <h2 className="text-xl font-black text-gray-950 uppercase tracking-tighter">Event Logs</h2>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Recent document generation</p>
+                                    </div>
                                 </header>
                                 <RecentLetters initialLetters={cartas || []} />
                             </section>
                         </div>
 
-                        {/* RIGHT COL (MODELS/COMPANIES) */}
-                        <div className="lg:col-span-4 space-y-8">
-                            <section id="marcas" className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
-                                <header className="mb-8">
-                                    <h2 className="text-xl font-black text-gray-950 uppercase tracking-tight flex items-center gap-3">
-                                        <Building2 className="h-6 w-6 text-blue-600" />
-                                        Marcas
+                        {/* RIGHT COL */}
+                        <div className="lg:col-span-12 xl:col-span-4 space-y-12">
+                            <section id="marcas" className="bg-white p-10 rounded-[32px] border border-gray-100 shadow-sm overflow-hidden relative">
+                                <header className="mb-10">
+                                    <h2 className="text-xl font-black text-gray-950 tracking-tighter flex items-center gap-4 uppercase">
+                                        <div className="h-10 w-10 bg-gray-950 rounded-xl flex items-center justify-center text-white">
+                                            <Building2 className="h-5 w-5" />
+                                        </div>
+                                        Brands
                                     </h2>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Configurações visuais e carimbos</p>
+                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.4em] mt-3 pl-1">Identity & Stamp Assets</p>
                                 </header>
                                 <CompanyList initialCompanies={companies || []} />
                             </section>
 
-                            <section id="modelos" className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
-                                <header className="mb-8 border-b border-gray-100 pb-4">
-                                    <h2 className="text-lg font-bold flex items-center gap-2 text-gray-900">
-                                        <FileText className="h-5 w-5 text-blue-600" />
-                                        Modelos de Cartas
+                            <section id="modelos" className="bg-white p-10 rounded-[32px] border border-gray-100 shadow-sm overflow-hidden border-t-4 border-t-gray-950">
+                                <header className="mb-10">
+                                    <h2 className="text-xl font-black text-gray-950 tracking-tighter flex items-center gap-4 uppercase">
+                                        <div className="h-10 w-10 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center text-gray-950">
+                                            <FileText className="h-5 w-5" />
+                                        </div>
+                                        Patterns
                                     </h2>
+                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.4em] mt-3 pl-1">Document Logic Templates</p>
                                 </header>
                                 <TemplateList initialTemplates={templates || []} companies={companies || []} />
                             </section>

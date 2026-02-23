@@ -78,48 +78,51 @@ export default function TemplateList({ initialTemplates, companies }: { initialT
     }
 
     return (
-        <div className="space-y-6">
-            {/* Abas de Navegação das Empresas */}
-            <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
+        <div className="space-y-8">
+            {/* Company Navigation Tabs */}
+            <div className="flex gap-2 p-1 bg-gray-50 rounded-2xl border border-gray-100 overflow-x-auto scrollbar-hide">
                 <button
                     onClick={() => setSelectedCompanyId(null)}
-                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedCompanyId === null ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-gray-800 text-gray-400 border border-gray-700 hover:text-white hover:border-gray-600'}`}
+                    className={`px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${selectedCompanyId === null ? 'bg-gray-950 text-white shadow-lg' : 'text-gray-400 hover:text-gray-950 hover:bg-white'}`}
                 >
-                    Geral
+                    Global
                 </button>
                 {companies.map(c => (
                     <button
                         key={c.id}
                         onClick={() => setSelectedCompanyId(c.id)}
-                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${selectedCompanyId === c.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-gray-800 text-gray-400 border border-gray-700 hover:text-white hover:border-gray-600'}`}
+                        className={`px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${selectedCompanyId === c.id ? 'bg-gray-950 text-white shadow-lg' : 'text-gray-400 hover:text-gray-950 hover:bg-white'}`}
                     >
-                        {c.logo_url && <img src={c.logo_url} className="w-4 h-4 rounded-full object-cover bg-white" />}
                         {c.nome}
                     </button>
                 ))}
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
                 {filteredTemplates.length > 0 ? (
                     filteredTemplates.map((t) => (
-                        <div key={t.id} className={`rounded-2xl border transition-all ${expandedId === t.id ? 'bg-gray-900 border-blue-600/50 ring-4 ring-blue-500/5' : 'bg-gray-900/50 border-gray-800 hover:border-gray-700'}`}>
-                            <div className="flex items-center justify-between p-4">
-                                <div className="flex items-center gap-3 overflow-hidden flex-1">
-                                    <FileText className={`h-5 w-5 flex-shrink-0 ${selectedCompanyId ? 'text-blue-500' : 'text-gray-600'}`} />
+                        <div key={t.id} className={`rounded-[24px] border transition-all duration-500 ${expandedId === t.id ? 'border-gray-950 ring-4 ring-gray-950/5 shadow-2xl bg-white' : 'bg-white border-gray-50 hover:border-gray-200'}`}>
+                            <div className="flex items-center justify-between p-6">
+                                <div className="flex items-center gap-5 overflow-hidden flex-1">
+                                    <div className={`h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-500 ${expandedId === t.id ? 'bg-gray-950 text-white' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}>
+                                        <FileText className="h-5 w-5 stroke-[1.5]" />
+                                    </div>
                                     {editingId === t.id ? (
                                         <input
                                             autoFocus
-                                            className="rounded-lg bg-gray-800 border-2 border-blue-600 px-3 py-1.5 text-xs text-white font-bold outline-none w-full"
+                                            className="rounded-xl bg-white border-2 border-gray-950 px-4 py-2 text-[11px] text-gray-950 font-black outline-none w-full tracking-widest uppercase shadow-sm"
                                             value={newName}
                                             onChange={(e) => setNewName(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && handleRename(t.id)}
                                         />
                                     ) : (
                                         <div className="flex flex-col overflow-hidden">
-                                            <span className="truncate font-black text-sm text-gray-100 uppercase tracking-tight">{t.nome}</span>
-                                            <span className="text-[9px] text-gray-600 font-black uppercase tracking-widest">
-                                                {new Date(t.criado_em).toLocaleDateString()}
-                                            </span>
+                                            <span className="truncate font-black text-sm text-gray-950 tracking-tight uppercase">{t.nome}</span>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <span className="text-[8px] text-gray-400 font-black uppercase tracking-[0.3em]">
+                                                    Revision: {new Date(t.criado_em).toLocaleDateString('pt-BR')}
+                                                </span>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -127,63 +130,63 @@ export default function TemplateList({ initialTemplates, companies }: { initialT
                                 <div className="flex items-center gap-1">
                                     {editingId === t.id ? (
                                         <>
-                                            <button onClick={() => handleRename(t.id)} className="p-2 text-green-500 hover:bg-green-500/10 rounded-xl transition-colors">
-                                                <Check className="h-4 w-4 stroke-[3]" />
+                                            <button onClick={() => handleRename(t.id)} className="p-3 text-gray-950 hover:bg-gray-50 rounded-xl transition-all">
+                                                <Check className="h-4 w-4 stroke-[2.5]" />
                                             </button>
-                                            <button onClick={() => setEditingId(null)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors">
-                                                <X className="h-4 w-4 stroke-[3]" />
+                                            <button onClick={() => setEditingId(null)} className="p-3 text-red-600 hover:bg-red-50 rounded-xl transition-all">
+                                                <X className="h-4 w-4 stroke-[2.5]" />
                                             </button>
                                         </>
                                     ) : (
                                         <>
                                             <button
                                                 onClick={() => { setExpandedId(expandedId === t.id ? null : t.id); setTempContent(t.conteudo || ''); }}
-                                                className={`p-2 rounded-xl transition-all ${expandedId === t.id ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}
+                                                className={`p-3 rounded-xl transition-all duration-300 ${expandedId === t.id ? 'bg-gray-50 text-gray-950' : 'text-gray-300 hover:text-gray-950 hover:bg-gray-50'}`}
                                             >
-                                                {expandedId === t.id ? <ChevronUp className="h-4 w-4 stroke-[3]" /> : <ChevronDown className="h-4 w-4 stroke-[3]" />}
+                                                {expandedId === t.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                             </button>
                                             <button
                                                 onClick={() => { setEditingId(t.id); setNewName(t.nome); }}
-                                                className="p-2 text-gray-500 hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-colors"
+                                                className="p-3 text-gray-300 hover:text-gray-950 hover:bg-gray-50 rounded-xl transition-all"
                                             >
-                                                <Edit2 className="h-4 w-4 stroke-[2.5]" />
+                                                <Edit2 className="h-4 w-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(t.id)}
-                                                className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors"
+                                                className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                                             >
-                                                <Trash2 className="h-4 w-4 stroke-[2.5]" />
+                                                <Trash2 className="h-4 w-4" />
                                             </button>
                                         </>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Área de Edição de Conteúdo Expandida */}
+                            {/* Expanded Content Area */}
                             {expandedId === t.id && (
-                                <div className="p-4 pt-0 border-t border-gray-800 animate-in slide-in-from-top-4">
-                                    <div className="flex items-center justify-between mb-3 mt-4">
-                                        <p className="text-[9px] text-gray-500 uppercase font-black tracking-widest">Estrutura do Documento</p>
+                                <div className="p-6 pt-0 border-t border-gray-50 animate-in slide-in-from-top-4 duration-500">
+                                    <div className="flex items-center justify-between mb-4 mt-6">
+                                        <p className="text-[9px] text-gray-400 uppercase font-black tracking-[0.3em]">Document Logic Core</p>
                                         <div className="flex gap-2">
                                             {['{{NOME}}', '{{DATA}}'].map(tag => (
-                                                <span key={tag} className="text-[8px] bg-gray-800 text-blue-400 px-1.5 py-0.5 rounded font-mono font-bold">{tag}</span>
+                                                <span key={tag} className="text-[8px] bg-gray-950 text-white px-2 py-0.5 rounded-lg font-mono font-black border border-transparent shadow-sm">{tag}</span>
                                             ))}
                                         </div>
                                     </div>
                                     <textarea
-                                        className="w-full rounded-2xl bg-gray-950 border-2 border-gray-800 p-4 text-xs font-mono text-gray-300 shadow-inner outline-none focus:border-blue-600 transition-all min-h-[180px] scrollbar-hide"
+                                        className="w-full rounded-[20px] bg-gray-50 border border-transparent p-6 text-[11px] font-mono text-gray-950 outline-none focus:border-gray-950 focus:bg-white transition-all min-h-[220px] shadow-inner leading-relaxed"
                                         value={tempContent}
                                         onChange={(e) => setTempContent(e.target.value)}
-                                        placeholder="Olá {{NOME}}, ..."
+                                        placeholder="Hello {{NOME}}, ..."
                                     />
-                                    <div className="mt-4 flex justify-end">
+                                    <div className="mt-6 flex justify-end">
                                         <button
                                             disabled={isSaving}
                                             onClick={() => handleSaveContent(t.id)}
-                                            className="bg-blue-600 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-blue-700 transition-all disabled:opacity-50 active:scale-95"
+                                            className="bg-gray-950 text-white px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 hover:bg-gray-800 transition-all disabled:opacity-50 active:scale-95 shadow-xl shadow-gray-200"
                                         >
-                                            <Save className="h-4 w-4 stroke-[2.5]" />
-                                            {isSaving ? 'SALVANDO...' : 'SALVAR TEMPLATE'}
+                                            <Save className="h-4 w-4" />
+                                            {isSaving ? 'Processing...' : 'Save logic'}
                                         </button>
                                     </div>
                                 </div>
@@ -191,36 +194,39 @@ export default function TemplateList({ initialTemplates, companies }: { initialT
                         </div>
                     ))
                 ) : (
-                    <div className="py-12 text-center bg-gray-900/40 rounded-[28px] border-2 border-dashed border-gray-800">
-                        <FileText className="h-8 w-8 text-gray-800 mx-auto mb-3" />
-                        <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">Nenhum modelo cadastrado</p>
+                    <div className="py-20 text-center bg-gray-50/50 rounded-[32px] border border-dashed border-gray-200">
+                        <FileText className="h-10 w-10 text-gray-200 mx-auto mb-4" />
+                        <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.3em]">Empty logic vault</p>
                     </div>
                 )}
             </div>
 
-            {/* Ação de Adição */}
+            {/* Action Area */}
             {!isAdding ? (
                 <button
                     onClick={() => setIsAdding(true)}
-                    className="w-full flex items-center justify-center gap-2 py-4 border-2 border-dashed border-gray-800 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:border-blue-600/50 hover:text-blue-500 transition-all bg-transparent active:scale-[0.98]"
+                    className="group w-full flex items-center justify-center gap-3 py-4 border-2 border-dashed border-gray-100 rounded-[24px] text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 hover:border-gray-950 hover:text-gray-950 transition-all bg-transparent active:scale-[0.98]"
                 >
-                    <Plus className="h-4 w-4 stroke-[3]" />
-                    ADICIONAR NOVO TEMPLATE
+                    <Plus className="h-4 w-4 stroke-[3] transition-transform group-hover:rotate-90" />
+                    New Pattern
                 </button>
             ) : (
-                <form onSubmit={handleCreate} className="bg-blue-600 p-6 rounded-2xl shadow-xl shadow-blue-500/20 animate-in zoom-in-95">
-                    <h3 className="text-[10px] font-black mb-4 text-white uppercase tracking-widest">Configurar Novo Modelo</h3>
-                    <div className="flex flex-col gap-3">
+                <form onSubmit={handleCreate} className="bg-white p-8 rounded-[32px] border border-gray-950 shadow-2xl animate-in zoom-in-95 duration-500">
+                    <h3 className="text-[10px] font-black mb-6 text-gray-950 uppercase tracking-[0.3em] flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 bg-gray-950 rounded-full"></div>
+                        Initialize Pattern
+                    </h3>
+                    <div className="flex flex-col gap-4">
                         <input
                             autoFocus
-                            placeholder="NOME DO MODELO (EX: CARTA DE ADVERTÊNCIA)"
-                            className="w-full rounded-xl border-0 bg-blue-700 p-3.5 text-xs font-bold text-white placeholder-blue-300 outline-none focus:ring-2 focus:ring-white/50 transition-all uppercase tracking-widest"
+                            placeholder="PATTERN SYSTEM NAME"
+                            className="w-full rounded-2xl border border-transparent bg-gray-50 p-4 text-[10px] font-black text-gray-950 outline-none focus:border-gray-950 focus:bg-white transition-all tracking-[0.2em] uppercase placeholder:opacity-50"
                             value={newTemplateName}
                             onChange={(e) => setNewTemplateName(e.target.value)}
                         />
                         <div className="flex gap-2">
-                            <button type="submit" className="flex-1 bg-white text-blue-600 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 active:scale-95 transition-all">CRIAR AGORA</button>
-                            <button type="button" onClick={() => setIsAdding(false)} className="px-5 bg-blue-500 text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-400 transition-all">CANCELAR</button>
+                            <button type="submit" className="flex-1 bg-gray-950 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-xl shadow-gray-200">COMMIT</button>
+                            <button type="button" onClick={() => setIsAdding(false)} className="px-6 bg-gray-100 text-gray-400 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:text-gray-950 transition-all">ABORT</button>
                         </div>
                     </div>
                 </form>

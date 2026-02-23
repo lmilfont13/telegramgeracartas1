@@ -70,14 +70,14 @@ export default function StoreManagement({ empresaId, initialLojas }: StoreManage
     }
 
     return (
-        <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-100 p-6">
             <div className="flex items-center gap-4 mb-6">
-                <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
-                    <Store className="h-6 w-6" />
+                <div className="h-10 w-10 bg-gray-50 text-gray-950 rounded-lg flex items-center justify-center shrink-0 border border-gray-100">
+                    <Store className="h-5 w-5" />
                 </div>
                 <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 uppercase tracking-tight">Lista de Lojas Predefinidas</h3>
-                    <p className="text-sm text-gray-500 font-medium font-outfit uppercase tracking-tighter">Cadastre as lojas que aparecerão como botões no Telegram.</p>
+                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight">Predefined Stores</h3>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Register stores that will appear as buttons in Telegram.</p>
                 </div>
             </div>
 
@@ -86,15 +86,15 @@ export default function StoreManagement({ empresaId, initialLojas }: StoreManage
                     type="text"
                     value={newStore}
                     onChange={(e) => setNewStore(e.target.value)}
-                    placeholder="NOMES DAS LOJAS (EX: LOJA 1, LOJA 2, LOJA 3)"
-                    className="flex-1 rounded-xl border-2 border-gray-100 bg-gray-50 p-3 text-xs font-black text-gray-950 placeholder:text-gray-300 outline-none focus:border-blue-600 focus:bg-white transition-all uppercase tracking-widest"
+                    placeholder="STORE NAMES (EX: STORE 1, STORE 2)"
+                    className="flex-1 rounded-lg border border-gray-200 bg-gray-50 p-3 text-[10px] font-bold text-gray-950 placeholder:text-gray-300 outline-none focus:border-gray-950 transition-all uppercase tracking-widest"
                 />
                 <button
                     type="submit"
-                    className="bg-gray-950 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center gap-2 active:scale-95"
+                    className="bg-gray-950 text-white px-5 py-3 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-gray-800 transition-all flex items-center gap-2 active:scale-95"
                 >
-                    <Plus className="h-4 w-4 stroke-[3]" />
-                    ADICIONAR
+                    <Plus className="h-3.5 w-3.5 stroke-[3]" />
+                    ADD
                 </button>
             </form>
 
@@ -120,22 +120,22 @@ export default function StoreManagement({ empresaId, initialLojas }: StoreManage
                 )}
             </div>
 
-            <div className="flex items-center justify-between pt-6 border-t border-gray-50">
+            <div className="flex items-center justify-between pt-6 border-t border-gray-100">
                 <div className="flex-1 pr-4">
                     {message && (
-                        <div className={`flex items-center gap-2 ${message.type === 'error' ? 'text-red-600' : 'text-green-600'} animate-in fade-in slide-in-from-left-2`}>
-                            {message.type === 'error' ? <AlertCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
-                            <span className="text-[10px] font-black uppercase tracking-widest">{message.text}</span>
+                        <div className={`flex items-center gap-2 ${message.type === 'error' ? 'text-red-600' : 'text-gray-950'} animate-in fade-in slide-in-from-left-2`}>
+                            {message.type === 'error' ? <AlertCircle className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                            <span className="text-[10px] font-bold uppercase tracking-widest">{message.text}</span>
                         </div>
                     )}
                 </div>
                 <button
                     onClick={handleSave}
                     disabled={loading}
-                    className="bg-blue-600 text-white px-8 py-3.5 rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-lg shadow-blue-200 hover:bg-blue-700 hover:shadow-blue-300 disabled:opacity-50 transition-all flex items-center gap-3 active:scale-95"
+                    className="bg-gray-950 text-white px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-gray-800 disabled:opacity-50 transition-all flex items-center gap-2 active:scale-95"
                 >
-                    <Save className="h-5 w-5" />
-                    {loading ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'}
+                    <Save className="h-3.5 w-3.5" />
+                    {loading ? 'SAVING...' : 'SAVE CHANGES'}
                 </button>
             </div>
         </div>

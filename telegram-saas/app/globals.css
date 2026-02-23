@@ -27,8 +27,9 @@
 
 body {
     @apply bg-white text-gray-950 antialiased;
-    background-image: radial-gradient(at 0% 0%, hsla(217,100%,97%,1) 0, transparent 50%), 
-                      radial-gradient(at 50% 0%, hsla(225,100%,98%,1) 0, transparent 50%), 
-                      radial-gradient(at 100% 0%, hsla(210,100%,97%,1) 0, transparent 50%);
+    background-color: #fcfcfc;
+    background-image:
+        radial-gradient(circle at 2px 2px, rgba(0, 0, 0, 0.02) 1px, transparent 0);
+    background-size: 24px 24px;
     background-attachment: fixed;
 }
