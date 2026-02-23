@@ -40,7 +40,11 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
         'use server'
         const supabase = await createClient()
         const newName = formData.get('nome') as string
-        await supabase.from('empresas').update({ nome: newName }).eq('id', empresaId)
+        const newFooter = formData.get('rodape') as string
+        await supabase.from('empresas').update({
+            nome: newName,
+            rodape: newFooter
+        }).eq('id', empresaId)
         revalidatePath(`/empresa/${empresaId}`)
     }
 
@@ -63,18 +67,31 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
                         </div>
                         <div className="flex-1 w-full">
                             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center w-full">
-                                <form action={updateCompany} className="flex-1 w-full space-y-1">
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Nome da Marca</label>
-                                    <div className="flex gap-2">
-                                        <input
-                                            name="nome"
-                                            defaultValue={empresa.nome}
-                                            className="text-3xl font-bold tracking-tight bg-transparent border-b-2 border-dashed border-gray-200 focus:border-blue-500 outline-none flex-1 py-1 text-gray-900 placeholder-gray-300 transition-colors"
-                                            placeholder="Nome da Empresa"
+                                <form action={updateCompany} className="flex-1 w-full space-y-4">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Nome da Marca</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                name="nome"
+                                                defaultValue={empresa.nome}
+                                                className="text-3xl font-bold tracking-tight bg-transparent border-b-2 border-dashed border-gray-200 focus:border-blue-500 outline-none flex-1 py-1 text-gray-900 placeholder-gray-300 transition-colors"
+                                                placeholder="Nome da Empresa"
+                                            />
+                                            <button className="shrink-0 bg-blue-100 text-blue-600 p-2 rounded-xl border border-blue-200 hover:bg-gray-950 hover:text-white transition-all shadow-sm active:scale-95" title="Salvar Alterações">
+                                                <Save className="h-5 w-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Rodapé da Carta (Endereço / Contatos)</label>
+                                        <textarea
+                                            name="rodape"
+                                            defaultValue={empresa.rodape || ''}
+                                            rows={2}
+                                            className="w-full text-sm font-medium bg-gray-50/50 border border-gray-200 rounded-2xl p-4 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all resize-none"
+                                            placeholder="Ex: Rua Exemplo, 123 - São Paulo - SP - CEP 04614-013 - Fone: (11) 3508-3160"
                                         />
-                                        <button className="shrink-0 bg-gray-100 text-gray-400 p-2 rounded-xl border border-gray-200 hover:bg-gray-950 hover:text-white transition-all shadow-sm active:scale-95" title="Salvar Nome">
-                                            <Save className="h-5 w-5" />
-                                        </button>
                                     </div>
                                 </form>
 
@@ -235,7 +252,6 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
                                 <EmployeeUploadInteractive botId={firstBot?.id || ""} />
                             </div>
 
-                            {/* @ts-expect-error Async Server Component */}
                             <EmployeeList empresaId={empresa.id} />
                         </div>
                     </section>
