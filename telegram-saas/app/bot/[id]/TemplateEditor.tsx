@@ -1,3 +1,4 @@
+'use client'
 import { useState, useRef } from 'react'
 import { Save, Upload, CheckCircle2, AlertCircle } from 'lucide-react'
 
