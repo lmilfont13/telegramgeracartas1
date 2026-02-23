@@ -921,7 +921,8 @@ async function generateAndSendPDF(bot, chatId, data, botData) {
             carimbo2Url: carimbo2Buffer,
             stampPosition,
             customCoords,
-            compact: empresa.nome.toLowerCase().includes('atacad') // Modo compacto para Atacadão
+            compact: empresa.nome.toLowerCase().includes('atacad'), // Modo compacto para Atacadão
+            footer: empresa.rodape
         });
 
         // 6. Envio com botões de navegação

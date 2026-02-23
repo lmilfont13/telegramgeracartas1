@@ -21,7 +21,7 @@ async function downloadImage(urlOrBuffer) {
  * Gera um PDF profissional a partir do texto da carta e imagens.
  * MODO READABLE / MULTI-PAGE (v5.0).
  */
-async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampPosition = 'ambos', customCoords = null, compact = false }) {
+async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampPosition = 'ambos', customCoords = null, compact = false, footer = null }) {
     const logoBuffer = await downloadImage(logoUrl);
     const carimbo1Buffer = await downloadImage(carimbo1Url);
     const carimbo2Buffer = await downloadImage(carimbo2Url);
@@ -61,11 +61,20 @@ async function generateSaaSPDF({ text, logoUrl, carimbo1Url, carimbo2Url, stampP
             const bodyLines = [];
             for (let i = 0; i < rawLines.length; i++) {
                 const line = rawLines[i].trim();
-                if (line.match(/(Rua Demóstenes|CEP 04614-013|São Paulo - SP|Terceirização|POP TRADE)/i) && i > rawLines.length - 8) {
-                    footerText = line;
+                // Se rodapé dinâmico foi passado, removemos o rodapé antigo do template se detectado
+                const isLegacyFooter = line.match(/(Rua Demóstenes|CEP 04614-013|São Paulo - SP|Terceirização|POP TRADE)/i) && i > rawLines.length - 8;
+
+                if (isLegacyFooter) {
+                    // Só salvamos se não tivermos um rodapé dinâmico novo
+                    if (!footer) footerText = line;
                 } else {
                     bodyLines.push(rawLines[i]);
                 }
+            }
+
+            // Se rodapé dinâmico foi passado, ele tem prioridade total
+            if (footer) {
+                footerText = footer;
             }
 
             const startY = (compact ? 70 : 100) * logoScale;
