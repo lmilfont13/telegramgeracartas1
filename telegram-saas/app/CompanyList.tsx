@@ -38,45 +38,40 @@ export default function CompanyList({ initialCompanies }: { initialCompanies: Em
 
     return (
         <div className="space-y-4">
-            <div className="grid gap-3">
+            <div className="space-y-1">
                 {companies && companies.length > 0 ? (
                     companies.map((c) => (
-                        <div key={c.id} className="group flex items-center justify-between rounded-2xl border border-gray-50 bg-white p-4 transition-all hover:border-black duration-500">
-                            <div className="flex items-center gap-4 overflow-hidden">
-                                <div className="h-12 w-12 flex-shrink-0 bg-gray-50 rounded-xl flex items-center justify-center text-black font-black border border-gray-100 group-hover:bg-black group-hover:text-white transition-all duration-500 overflow-hidden">
+                        <div key={c.id} className="group flex items-center justify-between rounded-md border border-transparent hover:border-[#E2E4E6] hover:bg-gray-50/50 p-2 transition-all">
+                            <div className="flex items-center gap-3 overflow-hidden">
+                                <div className="h-8 w-8 flex-shrink-0 bg-white border border-[#E2E4E6] rounded flex items-center justify-center overflow-hidden">
                                     {c.logo_url ? (
-                                        <img src={c.logo_url} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                        <img src={c.logo_url} className="h-full w-full object-cover" />
                                     ) : (
-                                        <Building2 className="h-5 w-5 stroke-[2]" />
+                                        <Building2 className="h-3.5 w-3.5 text-[#90949C]" />
                                     )}
                                 </div>
-                                <div className="flex flex-col overflow-hidden">
-                                    <span className="truncate font-black text-[13px] text-black tracking-tight uppercase">{c.nome}</span>
-                                    <span className="text-[8px] text-gray-400 font-black uppercase tracking-[0.2em] mt-0.5">MARCA ATIVA</span>
-                                </div>
+                                <span className="truncate font-bold text-[11px] text-black uppercase tracking-tight">{c.nome}</span>
                             </div>
 
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center">
                                 <a
                                     href={`/empresa/${c.id}`}
-                                    className="p-2.5 text-black hover:bg-gray-50 rounded-lg transition-all"
-                                    title="Gerenciar"
+                                    className="p-1.5 text-[#90949C] hover:text-black"
                                 >
-                                    <ChevronRight className="h-4 w-4" />
+                                    <ChevronRight className="h-3.5 w-3.5" />
                                 </a>
                                 <button
                                     onClick={() => handleDelete(c.id)}
-                                    className="p-2.5 text-gray-200 hover:text-black transition-all"
-                                    title="Excluir"
+                                    className="p-1.5 text-[#C0C4C9] hover:text-red-500"
                                 >
-                                    <Trash2 className="h-4 w-4" />
+                                    <Trash2 className="h-3 w-3" />
                                 </button>
                             </div>
                         </div>
                     ))
                 ) : (
-                    <div className="py-12 text-center bg-gray-50/50 rounded-[32px] border border-dashed border-gray-100">
-                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-[0.3em]">Nenhuma marca encontrada</p>
+                    <div className="py-6 text-center border border-dashed border-[#E2E4E6] rounded-md">
+                        <p className="text-[9px] text-[#90949C] font-bold uppercase tracking-widest">NENHUMA MARCA</p>
                     </div>
                 )}
             </div>
@@ -84,24 +79,24 @@ export default function CompanyList({ initialCompanies }: { initialCompanies: Em
             {!isAdding ? (
                 <button
                     onClick={() => setIsAdding(true)}
-                    className="w-full flex items-center justify-center gap-3 py-4.5 border-2 border-dashed border-gray-100 rounded-[24px] text-[10px] font-black uppercase tracking-[0.25em] text-gray-300 hover:border-black hover:text-black transition-all bg-white group"
+                    className="w-full mt-4 flex items-center justify-center gap-2 py-2 border border-dashed border-[#E2E4E6] rounded-md text-[9px] font-bold uppercase tracking-widest text-[#90949C] hover:border-black hover:text-black transition-all"
                 >
-                    <Plus className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                    <Plus className="h-3 w-3" />
                     NOVA MARCA
                 </button>
             ) : (
-                <form onSubmit={handleCreate} className="bg-gray-50/50 p-6 rounded-[32px] border border-black space-y-4 animate-in zoom-in-95 duration-300">
+                <form onSubmit={handleCreate} className="mt-4 border border-[#E2E4E6] p-3 rounded-md bg-gray-50/30 space-y-2 animate-in slide-in-from-top-1">
                     <input
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
-                        placeholder="NOME DA EMPRESA"
-                        className="w-full p-4.5 rounded-2xl bg-white border border-transparent focus:border-black outline-none text-[10px] font-black uppercase tracking-widest shadow-sm"
+                        placeholder="NOME"
+                        className="w-full bg-white border border-[#E2E4E6] rounded px-3 py-1.5 text-[10px] font-bold uppercase outline-none focus:border-black"
                         autoFocus
                         required
                     />
-                    <div className="flex gap-2">
-                        <button type="submit" className="flex-1 py-4.5 rounded-2xl bg-black text-white text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all">SALVAR</button>
-                        <button type="button" onClick={() => setIsAdding(false)} className="px-6 py-4.5 rounded-2xl bg-white border border-gray-200 text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all">CANCELAR</button>
+                    <div className="flex gap-1.5">
+                        <button type="submit" className="flex-1 py-1.5 rounded bg-black text-white text-[9px] font-bold uppercase hover:bg-neutral-800 transition-all">SALVAR</button>
+                        <button type="button" onClick={() => setIsAdding(false)} className="px-3 py-1.5 rounded bg-white border border-[#E2E4E6] text-[9px] font-bold text-[#90949C] uppercase hover:bg-gray-50 transition-all">X</button>
                     </div>
                 </form>
             )}

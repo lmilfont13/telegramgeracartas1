@@ -3,33 +3,47 @@
 @tailwind utilities;
 
 :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
+    --background: 220 15% 98%;
+    --foreground: 220 10% 4%;
+    --muted: 220 15% 95%;
+    --muted-foreground: 220 10% 45%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
+    --popover-foreground: 220 10% 4%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --primary: 0 0% 0%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
+    --card-foreground: 220 10% 4%;
+    --border: 220 15% 90%;
+    --input: 220 15% 90%;
+    --primary: 220 10% 10%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 15% 95%;
+    --secondary-foreground: 220 10% 10%;
+    --accent: 220 15% 95%;
+    --accent-foreground: 220 10% 10%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --ring: 0 0% 10%;
-    --radius: 0.75rem;
+    --ring: 220 15% 10%;
+    --radius: 0.5rem;
 }
 
 body {
-    @apply bg-white text-gray-950 antialiased;
-    background-color: #fcfcfc;
-    background-image:
-        radial-gradient(circle at 2px 2px, rgba(0, 0, 0, 0.02) 1px, transparent 0);
-    background-size: 24px 24px;
-    background-attachment: fixed;
+    @apply bg-[#F8F9FA] text-[#1A1C1E] antialiased selection:bg-black selection:text-white;
+}
+
+/* Scrollbar Refinement */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.1);
 }
