@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { deleteLetter } from './actions'
-import { FileText, Trash2, Download, User, Calendar, History as HistoryIcon } from 'lucide-react'
+import { FileText, Trash2, ChevronRight, User, Calendar } from 'lucide-react'
 
 interface Letter {
     id: string
@@ -18,83 +18,61 @@ export default function RecentLetters({ initialLetters }: { initialLetters: Lett
     const [letters, setLetters] = useState(initialLetters)
 
     const handleDelete = async (id: string, pdfUrl: string) => {
-        if (!confirm('Tem certeza que deseja excluir este registro e o arquivo PDF?')) return
+        if (!confirm('Deseja excluir este registro?')) return
         const result = await deleteLetter(id, pdfUrl)
-        if (result.success) {
-            setLetters(letters.filter(l => l.id !== id))
-        } else {
-            alert('Erro ao excluir: ' + result.error)
-        }
+        if (result.success) setLetters(letters.filter(l => l.id !== id))
+    }
+
+    if (!letters || letters.length === 0) {
+        return (
+            <div className="py-12 text-center bg-gray-50/50 rounded-[32px] border border-dashed border-gray-100">
+                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-[0.3em]">No activity recorded</p>
+            </div>
+        )
     }
 
     return (
-        <div className="space-y-6">
-            {letters.length > 0 ? (
-                <div className="grid gap-4">
-                    {letters.map((letter) => (
-                        <div key={letter.id} className="group relative flex flex-col md:flex-row md:items-center justify-between gap-6 rounded-2xl border border-gray-50 bg-white p-6 transition-all hover:bg-gray-50/50 hover:shadow-lg hover:shadow-gray-100/50 duration-300">
-                            <div className="flex items-center gap-6">
-                                <div className="h-14 w-14 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-950 group-hover:bg-gray-950 group-hover:text-white transition-all duration-500">
-                                    <FileText className="h-6 w-6 stroke-[1.5]" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <div className="flex items-center gap-2 mb-1.5">
-                                        <div className="h-4 w-4 rounded-full bg-gray-100 flex items-center justify-center">
-                                            <User className="h-2 w-2 text-gray-500" />
-                                        </div>
-                                        <span className="font-black text-[10px] text-gray-950 tracking-widest uppercase">Worker {letter.funcionario_id.slice(0, 8)}</span>
-                                        {letter.criado_por_user && (
-                                            <>
-                                                <span className="h-1 w-1 rounded-full bg-gray-200"></span>
-                                                <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest">By {letter.criado_por_user}</span>
-                                            </>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex items-center gap-1.5 text-[9px] text-gray-400 font-black uppercase tracking-[0.2em]">
-                                            <Calendar className="h-3 w-3" />
-                                            {new Date(letter.criado_em).toLocaleDateString('pt-BR')}
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-[9px] text-gray-950 font-black uppercase tracking-[0.2em] bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
-                                            Status: Stable
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                                <a
-                                    href={letter.pdf_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center justify-center gap-3 bg-white text-gray-950 border border-gray-200 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-gray-950 hover:text-white hover:border-transparent transition-all active:scale-95 shadow-sm"
-                                >
-                                    <Download className="h-3.5 w-3.5" />
-                                    Review doc
-                                </a>
-                                <button
-                                    onClick={() => handleDelete(letter.id, letter.pdf_url)}
-                                    className="p-3 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-300"
-                                    title="Excluir Registro"
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </button>
+        <div className="space-y-4">
+            {letters.map((letter) => (
+                <div key={letter.id} className="group flex items-center justify-between p-5 rounded-[24px] border border-gray-50 bg-white transition-all hover:border-black duration-500">
+                    <div className="flex items-center gap-5 overflow-hidden">
+                        <div className="h-12 w-12 flex-shrink-0 bg-gray-50 rounded-2xl flex items-center justify-center text-black border border-gray-100 group-hover:bg-black group-hover:text-white transition-all duration-500">
+                            <FileText className="h-5 w-5 stroke-[1.5]" />
+                        </div>
+                        <div className="flex flex-col overflow-hidden">
+                            <span className="truncate font-black text-[13px] text-black tracking-tight uppercase">CARTA_{letter.id.slice(0, 8)}</span>
+                            <div className="flex items-center gap-3 mt-1">
+                                <span className="text-[8px] text-black font-black uppercase tracking-[0.2em]">{letter.criado_por_user || `USUÁRIO: ${letter.funcionario_id.slice(0, 8)}`}</span>
+                                <div className="h-1 w-1 rounded-full bg-gray-300"></div>
+                                <span className="text-[8px] text-gray-400 font-bold uppercase tracking-[0.2em]">{new Date(letter.criado_em).toLocaleDateString('pt-BR')}</span>
                             </div>
                         </div>
-                    ))}
-                </div>
-            ) : (
-                <div className="py-20 text-center bg-gray-50/50 rounded-[32px] border border-dashed border-gray-200">
-                    <HistoryIcon className="h-10 w-10 text-gray-200 mx-auto mb-4" />
-                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.3em]">No activity detected</p>
-                </div>
-            )}
+                    </div>
 
-            {letters.length > 0 && (
-                <button className="w-full py-4 text-[10px] font-black text-gray-400 hover:text-gray-950 uppercase tracking-[0.3em] transition-all hover:bg-gray-50 rounded-2xl border border-transparent hover:border-gray-100">
-                    Access deep history
-                </button>
-            )}
+                    <div className="flex items-center gap-2">
+                        <a
+                            href={letter.pdf_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-3 text-black hover:bg-gray-50 rounded-xl transition-all border border-transparent hover:border-black/5"
+                            title="Visualizar"
+                        >
+                            <ChevronRight className="h-5 w-5" />
+                        </a>
+                        <button
+                            onClick={() => handleDelete(letter.id, letter.pdf_url)}
+                            className="p-3 text-gray-200 hover:text-black transition-all"
+                            title="Excluir"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+            ))}
+
+            <button className="w-full py-5 text-[10px] font-black text-gray-400 hover:text-black uppercase tracking-[0.4em] transition-all hover:bg-gray-50 rounded-[24px] border-2 border-dashed border-gray-100 mt-6">
+                ACESSAR HISTÓRICO COMPLETO
+            </button>
         </div>
     )
 }
