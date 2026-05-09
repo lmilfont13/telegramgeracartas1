@@ -4,7 +4,8 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install
+# Versão do Bot: 1.2.0
+RUN npm install --no-package-lock
 
 COPY . .
 
