@@ -4,6 +4,7 @@ const { generatePDF } = require('./pdfGenerator');
 const fs = require('fs');
 const path = require('path');
 
+// Versão do Bot: 1.1.0 - Atualização de Layout de PDF
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
 
