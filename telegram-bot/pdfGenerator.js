@@ -56,52 +56,55 @@ async function generatePDF(text) {
             doc.y = 140; // Altura após logo
 
             // Configurar fonte e tamanho para o texto principal
-            doc.font('Times-Roman');
-            doc.fontSize(12);
+            doc.font('Helvetica'); // Helvetica é mais moderna que Times
+            doc.fontSize(10.5);
 
             // Processar o texto linha por linha
             const lines = text.split('\n');
 
             for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
+                const line = lines[i].trim();
+
+                // Linha vazia = espaçamento controlado
+                if (line === '') {
+                    doc.moveDown(0.4);
+                    continue;
+                }
 
                 // Detectar títulos (linhas em maiúsculas ou que começam com #)
-                if (line.trim().startsWith('#')) {
-                    doc.fontSize(14)
-                        .font('Times-Bold')
-                        .text(line.replace(/^#+\s*/, ''), {
-                            align: 'left'
-                        })
-                        .moveDown(0.5);
-                    doc.fontSize(12).font('Times-Roman');
+                if (line.startsWith('#')) {
+                    doc.fontSize(12)
+                        .font('Helvetica-Bold')
+                        .text(line.replace(/^#+\s*/, ''), { align: 'left' })
+                        .moveDown(0.3);
+                    doc.fontSize(10.5).font('Helvetica');
                     continue;
                 }
 
-                // Linha vazia = espaçamento
-                if (line.trim() === '') {
-                    doc.moveDown(0.5);
-                    continue;
-                }
-
-                // Detectar listas (linhas que começam com - ou *)
-                if (line.trim().match(/^[-*]\s/)) {
+                // Estilo especial para linhas de cabeçalho (A Loja, A/C, Ref)
+                const isHeaderLine = line.startsWith('A Loja:') || line.startsWith('A/C:') || line.startsWith('Ref.:');
+                
+                if (isHeaderLine) {
+                    doc.font('Helvetica-Bold')
+                        .text(line, { align: 'left', lineGap: 1 })
+                        .moveDown(0.2);
+                    doc.font('Helvetica');
+                } else {
                     doc.text(line, {
-                        indent: 20,
-                        align: 'left',
-                        lineGap: 2
+                        align: 'justify',
+                        lineGap: 1
                     });
-                    continue;
                 }
-
-                // Texto normal - SEMPRE justificado
-                doc.text(line, {
-                    align: 'justify',
-                    lineGap: 2
-                });
             }
 
-            // Adicionar carimbos/assinaturas no final
-            doc.moveDown(2);
+            // Adicionar carimbos/assinaturas no final (Página Única)
+            // Se o espaço for muito pouco, reduz o moveDown
+            const remainingHeight = doc.page.height - doc.y - 72;
+            if (remainingHeight < 120) {
+                doc.moveDown(0.5);
+            } else {
+                doc.moveDown(1.5);
+            }
 
             // Verificar se existem os arquivos de carimbo
             const carimbo1Path = path.join(__dirname, 'carimbo1.png');
@@ -109,31 +112,19 @@ async function generatePDF(text) {
 
             const pageWidth = doc.page.width;
             const margin = 72;
-            const availableWidth = pageWidth - (margin * 2);
-            const carimboWidth = 150;
-            const currentY = doc.y;
+            const carimboWidth = 140;
+            let currentY = doc.y;
+
+            // Garantir que os carimbos não causem quebra de página se estiverem no limite
+            if (currentY > 650) currentY = 650;
 
             if (fs.existsSync(carimbo1Path) && fs.existsSync(carimbo2Path)) {
-                // Ambos existem - colocar lado a lado
-                // Carimbo 1 à esquerda
-                doc.image(carimbo1Path, margin, currentY, {
-                    fit: [carimboWidth, 100]
-                });
-
-                // Carimbo 2 à direita
-                doc.image(carimbo2Path, pageWidth - margin - carimboWidth, currentY, {
-                    fit: [carimboWidth, 100]
-                });
+                doc.image(carimbo1Path, margin, currentY, { fit: [carimboWidth, 80] });
+                doc.image(carimbo2Path, pageWidth - margin - carimboWidth, currentY, { fit: [carimboWidth, 80] });
             } else if (fs.existsSync(carimbo1Path)) {
-                // Apenas carimbo 1
-                doc.image(carimbo1Path, margin, currentY, {
-                    fit: [carimboWidth, 100]
-                });
+                doc.image(carimbo1Path, margin, currentY, { fit: [carimboWidth, 80] });
             } else if (fs.existsSync(carimbo2Path)) {
-                // Apenas carimbo 2
-                doc.image(carimbo2Path, pageWidth - margin - carimboWidth, currentY, {
-                    fit: [carimboWidth, 100]
-                });
+                doc.image(carimbo2Path, pageWidth - margin - carimboWidth, currentY, { fit: [carimboWidth, 80] });
             }
 
             // Finalizar o PDF
