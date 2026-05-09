@@ -37,7 +37,7 @@ async function generatePDF(text) {
             }).toUpperCase();
             
             doc.font('Helvetica-Bold').fontSize(7)
-                .text(`DATA DE EMISSÃO: ${dataAtual}`, 0, 40, { align: 'right', width: 550 });
+                .text(`VERSÃO 3.0 - DATA DE EMISSÃO: ${dataAtual}`, 0, 40, { align: 'right', width: 550 });
 
             // --- CABEÇALHO (Posicionamento Absoluto para evitar sobreposição) ---
             
